@@ -3,7 +3,7 @@ sys.path.append("../src")
 print(sys.path)
 
 from system import System
-from dynamics import streaming
+from dynamics import streaming, collision
 from observables import system_impuls, system_kinetic
 
 system = System(
@@ -19,7 +19,8 @@ system = System(
 
 for j in range(100):
     streaming(system)
-    print(f"Iterration {j+1}|\nPosition: {system.r[0]}\nImpuls: {system_impuls(system)} \nKinetic energy: {system_kinetic(system)}\n"
+    collision(system)
+    print(f"Iterration {j+1}|\nPosition: {system.r[5]}\nImpuls: {system_impuls(system)} \nKinetic energy: {system_kinetic(system)}\n"
     )
 
 
