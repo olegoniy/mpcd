@@ -20,19 +20,21 @@ def distributeToCells(system):
     return cells
     
 def rotationInCell(system, cell, rotation):
-    v_com = system.r[cell].mean(axis=0)
-    for velocity in system.v[cell]:
-        velocity += (rotation-np.eye(3))@(velocity - v_com)
+    cell = np.array(cell)
 
+    v_com = system.v[cell].mean(axis=0)
+
+    dv = system.v[cell] - v_com
+
+    system.v[cell] = v_com + dv @ rotation.T
 def generateRotation(system):
-    alpha = system.rng.uniform(0, 2*np.pi)
     phi = system.rng.uniform(0, 2*np.pi)
     theta = system.rng.uniform(-1, 1)
     Rx = np.sqrt(1-theta**2)*np.cos(phi)
     Ry = np.sqrt(1-theta**2)*np.sin(phi)
     Rz = theta
-    c = np.cos(alpha)
-    s = np.sin(alpha)
+    c = np.cos(system.alpha)
+    s = np.sin(system.alpha)
     return np.array([
         [
             Rx**2 + (1 - Rx**2) * c,
@@ -53,12 +55,11 @@ def generateRotation(system):
 
 def collision(system):
     cells = distributeToCells(system)
-    rotationMatrix = generateRotation(system)
+    system.alpha = system.rng.uniform(0, 2*np.pi)
     for ix, iy, iz in np.ndindex(cells.shape):
         cell = cells[ix, iy, iz]
+        rotationMatrix = generateRotation(system)
         if(system.r[cell].any()):
             rotationInCell(system, cell, rotationMatrix)
 
     
-
-#[np.ceil(system.box[0]/system.a)][np.ceil(system.box[0]/system.a)][np.ceil(system.box[0]/system.a)]

@@ -4,7 +4,7 @@ print(sys.path)
 
 from system import System
 from dynamics import streaming, collision
-from observables import system_impuls, system_kinetic
+from observables import system_momentum, system_kinetic
 
 system = System(
     N = 10000, 
@@ -20,7 +20,7 @@ system = System(
 for j in range(100):
     streaming(system)
     collision(system)
-    print(f"Iterration {j+1}|\nPosition: {system.r[5]}\nImpuls: {system_impuls(system)} \nKinetic energy: {system_kinetic(system)}\n"
+    print(f"Iterration {j+1}|\nPosition: {system.r[5]}\nImpuls: {system_momentum(system)} \nKinetic energy: {system_kinetic(system)}\n"
     )
 
 
