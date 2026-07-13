@@ -54,6 +54,9 @@ def generateRotation(system):
     ])
 
 def collision(system):
+    copyPositions = system.r
+    shift = system.rng.uniform(-system.a / 2, system.a / 2, size=3)
+    system.r = (system.r + shift) % system.box
     cells = distributeToCells(system)
     system.alpha = system.rng.uniform(0, 2*np.pi)
     for ix, iy, iz in np.ndindex(cells.shape):
@@ -61,5 +64,6 @@ def collision(system):
         rotationMatrix = generateRotation(system)
         if(system.r[cell].any()):
             rotationInCell(system, cell, rotationMatrix)
+    system.r = copyPositions
 
     
