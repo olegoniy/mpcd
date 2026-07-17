@@ -2,10 +2,12 @@ import numpy as np
 
 class Polymer():
 
-    def __init__(self, nMonomers, bondLength, m, box, kBT, seed):
+    def __init__(self, nMonomers, bondLength, m, k, box, kBT, seed):
         self.nMonomers = nMonomers
         self.bondLength = bondLength
         self.m = m
+        self.k = k
+        
 
         self.box = box
         self.kBT = kBT
@@ -13,6 +15,8 @@ class Polymer():
         self.rng = np.random.default_rng(seed)
 
         self.generateLinearPositions()
+        self.v = np.zeros((nMonomers, 3))
+        self.f = np.zeros((nMonomers, 3))
 
     def generatePolymerPositions(self):
         res = []

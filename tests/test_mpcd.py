@@ -33,7 +33,7 @@ def test_is_orthogonal_matrix():
 
 def test_determinant():
 
-    for i in range(1000):
+    for i in range(100000):
         R = generateRotation(system)
         print(np.linalg.det(R))
         np.testing.assert_allclose(
