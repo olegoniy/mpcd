@@ -4,7 +4,7 @@ sys.path.append("../src")
 
 from system import System
 
-from dynamics import generateRotation, distributeToCells, rotationInCell
+from mpcd import generateRotation, distributeToCells, rotationInCell
 from observables import system_momentum, system_kinetic
 
 system = System(

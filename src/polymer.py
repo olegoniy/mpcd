@@ -14,15 +14,21 @@ class Polymer():
 
         self.rng = np.random.default_rng(seed)
 
-        self.generateLinearPositions()
-        self.v = np.zeros((nMonomers, 3))
+        #self.generateLinearPositions()
+        self.generateRandomWalk()
+        self.generateVelocities()
         self.f = np.zeros((nMonomers, 3))
 
-    def generatePolymerPositions(self):
-        res = []
-        self.r[0] = self.rng.uniform(0, self.box, size=(3))
-        for i in range(1, self.nMonomers-1):
-            self.r
+    def generateRandomWalk(self):
+        self.r = np.zeros((self.nMonomers, 3))
+        self.r[0] = self.rng.uniform(0, self.box, size=3)
+
+        for i in range(1, self.nMonomers):
+            theta, alpha = self.rng.uniform(0, 2*np.pi, size=2)
+            direction = np.array([np.sin(theta)*np.cos(alpha), np.sin(theta)*np.sin(alpha), np.cos(theta)])
+            step = self.bondLength * direction
+            self.r[i] = self.r[i-1]+step*self.rng.uniform(0.95,1.05)
+            self.r %= self.box
 
     def generateLinearPositions(self):
 
@@ -44,3 +50,22 @@ class Polymer():
     def distInBC(self, idx1, idx2):
         vec = self.vecDiffInBC(idx1, idx2)
         return np.sqrt(np.sum(vec**2))
+    
+    def generateVelocities(self):
+        sigma = np.sqrt(self.kBT / self.m)
+
+        self.v = self.rng.normal(
+            loc=0.0,
+            scale=sigma,
+            size=(self.nMonomers, 3)
+        )
+
+    def kineticEnergy(self):
+        return 0.5*self.m*np.sum(self.v**2)
+    
+    def potentialEnergy(self):
+        bondLengths = np.array([self.distInBC(i, i+1) for i in range(self.nMonomers-1)])
+        return 0.5*self.k*np.sum((bondLengths-self.bondLength)**2)
+    
+    def totalEnergy(self):
+        return self.kineticEnergy() + self.potentialEnergy()

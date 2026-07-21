@@ -84,40 +84,40 @@ SEED = 12345
 
 ### 1. Basic MPCD solvent
 
-- [*] Create `System` class
-- [*] Initialize solvent positions uniformly in the box
-- [*] Initialize solvent velocities from a Gaussian distribution
-- [*] Implement periodic boundary conditions
-- [*] Implement streaming step
-- [*] Implement random grid shift
-- [*] Implement cell assignment
-- [*] Implement random rotation matrix
-- [*] Implement MPCD collision step
-- [*] Test rotation matrix determinant and orthogonality
-- [*] Test momentum conservation in one cell
-- [*] Test kinetic energy conservation in one cell
-- [*] Test full solvent momentum conservation
-- [*] Check velocity distribution 
-- [*] Check cell occupancy distribution
+- [x] Create `System` class
+- [x] Initialize solvent positions uniformly in the box
+- [x] Initialize solvent velocities from a Gaussian distribution
+- [x] Implement periodic boundary conditions
+- [x] Implement streaming step
+- [x] Implement random grid shift
+- [x] Implement cell assignment
+- [x] Implement random rotation matrix
+- [x] Implement MPCD collision step
+- [x] Test rotation matrix determinant and orthogonality
+- [x] Test momentum conservation in one cell
+- [x] Test kinetic energy conservation in one cell
+- [x] Test full solvent momentum conservation
+- [x] Check velocity distribution 
+- [x] Check cell occupancy distribution
 
 ### 2. Polymer MD without solvent
 
-- [*] Create `Polymer` class
-- [*] Generate straight-chain initial positions
-- [ ] Generate random-walk initial positions
-- [ ] Initialize polymer velocities
+- [x] Create `Polymer` class
+- [x] Generate straight-chain initial positions
+- [x] Generate random-walk initial positions
+- [x] Initialize polymer velocities
 - [ ] Remove polymer center-of-mass velocity
-- [*] Implement minimum image convention
-- [*] Implement harmonic bond forces
-- [*] Implement velocity Verlet integrator
-- [*] Test initial bond lengths
+- [x] Implement minimum image convention
+- [x] Implement harmonic bond forces
+- [x] Implement velocity Verlet integrator
+- [x] Test initial bond lengths
 - [ ] Test zero force at equilibrium bond length
-- [ ] Test total bond force equals zero
-- [ ] Test polymer momentum conservation
-- [ ] Test polymer energy conservation
-- [*] Test bond lengths remain stable
-- [*] Plot polymer in 3D
-- [*] Plot bond length evolution
+- [x] Test total bond force equals zero
+- [x] Test polymer momentum conservation
+- [x] Test polymer energy conservation
+- [x] Test bond lengths remain stable
+- [x] Plot polymer in 3D
+- [x] Plot bond length evolution
 - [ ] Plot total energy evolution
 
 ### 3. MPCD-polymer coupling
@@ -161,7 +161,7 @@ SEED = 12345
 
 Before adding new physics, confirm:
 
-- [*] solvent collision conserves momentum
+- [x] solvent collision conserves momentum
 - [ ] polymer bond forces conserve total momentum
 - [ ] polymer MD approximately conserves total energy
 - [ ] coupled MPCD-polymer collision conserves momentum
