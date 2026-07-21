@@ -58,7 +58,6 @@ def collision(system):
     shift = system.rng.uniform(-system.a / 2, system.a / 2, size=3)
     system.r = (system.r + shift) % system.box
     cells = distributeToCells(system)
-    system.alpha = system.rng.uniform(0, 2*np.pi)
     for ix, iy, iz in np.ndindex(cells.shape):
         cell = cells[ix, iy, iz]
         rotationMatrix = generateRotation(system)

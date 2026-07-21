@@ -17,7 +17,11 @@ class Polymer():
         #self.generateLinearPositions()
         self.generateRandomWalk()
         self.generateVelocities()
+        
+
         self.f = np.zeros((nMonomers, 3))
+
+        self.alpha = self.rng.uniform(0, 2*np.pi)
 
     def generateRandomWalk(self):
         self.r = np.zeros((self.nMonomers, 3))
@@ -34,9 +38,7 @@ class Polymer():
 
         self.r = np.zeros((self.nMonomers, 3))
         self.r[0] = self.rng.uniform(0, self.box, size=3)
-
-        theta, alpha = self.rng.uniform(0, 2*np.pi, size=2)
-        direction = np.array([np.sin(theta)*np.cos(alpha), np.sin(theta)*np.sin(alpha), np.cos(theta)])
+        direction = self.randomUnitVec()
         step = self.bondLength * direction
 
         for i in range(1, self.nMonomers):
@@ -51,6 +53,10 @@ class Polymer():
         vec = self.vecDiffInBC(idx1, idx2)
         return np.sqrt(np.sum(vec**2))
     
+    def randomUnitVec(self):
+        v = self.rng.normal(size=3)
+        return v / np.linalg.norm(v)
+    
     def generateVelocities(self):
         sigma = np.sqrt(self.kBT / self.m)
 
@@ -59,6 +65,7 @@ class Polymer():
             scale=sigma,
             size=(self.nMonomers, 3)
         )
+        self.v -= self.v.mean(axis=0)
 
     def kineticEnergy(self):
         return 0.5*self.m*np.sum(self.v**2)

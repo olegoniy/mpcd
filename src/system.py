@@ -16,6 +16,6 @@ class System:
         self.r = self.rng.uniform(0, self.box, size=(N, 3))
         self.v = self.rng.normal(0, np.sqrt(kBT / m), size=(N, 3))
 
-        #self.v -= self.v.mean(axis=0) to get drift away/ it seems, it will help with temperature acurracy
+        self.v -= self.v.mean(axis=0) #to get drift away it seems, it will help with temperature acurracy
 
         
