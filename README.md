@@ -111,7 +111,7 @@ SEED = 12345
 - [x] Implement harmonic bond forces
 - [x] Implement velocity Verlet integrator
 - [x] Test initial bond lengths
-- [ ] Test zero force at equilibrium bond length
+- [x] Test zero force at equilibrium bond length
 - [x] Test total bond force equals zero
 - [x] Test polymer momentum conservation
 - [x] Test polymer energy conservation
@@ -156,14 +156,3 @@ SEED = 12345
 - [ ] Add temperature gradient if needed
 - [ ] Compare flexible and semiflexible polymer behavior
 - [ ] Document final simulation parameters
-
-## Main validation goals
-
-Before adding new physics, confirm:
-
-- [x] solvent collision conserves momentum
-- [ ] polymer bond forces conserve total momentum
-- [ ] polymer MD approximately conserves total energy
-- [ ] coupled MPCD-polymer collision conserves momentum
-- [ ] bond lengths stay stable
-- [ ] simulation does not produce NaN or infinite values
