@@ -118,7 +118,7 @@ SEED = 12345
 - [x] Test bond lengths remain stable
 - [x] Plot polymer in 3D
 - [x] Plot bond length evolution
-- [ ] Plot total energy evolution
+- [x] Plot total energy evolution
 
 ### 3. MPCD-polymer coupling
 
