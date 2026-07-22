@@ -2,12 +2,12 @@ import numpy as np
 
 class Polymer():
 
-    def __init__(self, nMonomers, bondLength, m, k, box, kBT, seed):
+    def __init__(self, nMonomers, dt, bondLength, m, k, box, kBT, seed):
         self.nMonomers = nMonomers
         self.bondLength = bondLength
         self.m = m
         self.k = k
-        
+        self.dt = dt
 
         self.box = box
         self.kBT = kBT

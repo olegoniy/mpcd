@@ -1,4 +1,5 @@
 import numpy as np
+from observables import coupledCMVelocity
 
 def streaming(system):
     system.r += system.h * system.v
@@ -27,6 +28,7 @@ def rotationInCell(system, cell, rotation):
     dv = system.v[cell] - v_com
 
     system.v[cell] = v_com + dv @ rotation.T
+
 def generateRotation(system):
     phi = system.rng.uniform(0, 2*np.pi)
     theta = system.rng.uniform(-1, 1)
@@ -65,4 +67,12 @@ def collision(system):
             rotationInCell(system, cell, rotationMatrix)
     system.r = copyPositions
 
-    
+def rotateCoupledCell(rotation, solventIndicies, system, polymerIndicies = None, polymer = None ):
+    v_com = coupledCMVelocity(solventIndicies, system, polymerIndicies, polymer)
+    dv_solvent = system.v[solventIndicies] - v_com
+
+    system.v[solventIndicies] = v_com + dv_solvent @ rotation.T
+
+    if polymer is not None:
+        dv_monomers = polymer.v[polymerIndicies] - v_com
+        polymer.v[polymerIndicies] = v_com + dv_monomers @ rotation.T
