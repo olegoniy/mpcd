@@ -12,7 +12,6 @@ mpcd_project/
 │   ├── forces.py          # polymer force calculations
 │   ├── md.py              # velocity Verlet integrator
 │   ├── mpcd.py            # MPCD streaming, cells, collision
-│   ├── coupling.py        # polymer-solvent coupling
 │   ├── observables.py     # diagnostics and measured quantities
 │
 ├── scripts/

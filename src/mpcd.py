@@ -56,26 +56,25 @@ def generateRotation(system):
     ])
 
 def collide(system):
-    copyPositions = system.r
+    
     shift = system.rng.uniform(-system.a / 2, system.a / 2, size=3)
-    system.r = (system.r + shift) % system.box
-    cells = distributeToCellsSolvent(system)
+    shifted_positions = (system.r + shift) % system.box
+    cells = distributeToCells(shifted_positions, system.box, system.a)
     for ix, iy, iz in np.ndindex(cells.shape):
         cell = cells[ix, iy, iz]
         rotationMatrix = generateRotation(system)
-        if(system.r[cell].any()):
+        if len(cell) > 1:
             rotateInCell(system, cell, rotationMatrix)
-    system.r = copyPositions
 
-def rotateCoupledCell(rotation, solventIndicies, system, polymerIndicies = None, polymer = None ):
-    v_com = coupledCMVelocity(solventIndicies, system, polymerIndicies, polymer)
-    dv_solvent = system.v[solventIndicies] - v_com
+def rotateCoupledCell(rotation, solventIndices, system, polymerIndices = None, polymer = None ):
+    v_com = coupledCMVelocity(solventIndices, system, polymerIndices, polymer)
+    dv_solvent = system.v[solventIndices] - v_com
 
-    system.v[solventIndicies] = v_com + dv_solvent @ rotation.T
+    system.v[solventIndices] = v_com + dv_solvent @ rotation.T
 
     if polymer is not None:
-        dv_monomers = polymer.v[polymerIndicies] - v_com
-        polymer.v[polymerIndicies] = v_com + dv_monomers @ rotation.T
+        dv_monomers = polymer.v[polymerIndices] - v_com
+        polymer.v[polymerIndices] = v_com + dv_monomers @ rotation.T
 
 def distributeToCells(positions, box, a):
     n_cells = np.ceil(box / a).astype(int)

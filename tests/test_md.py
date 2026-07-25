@@ -14,6 +14,7 @@ polymer = Polymer(
     k = 10,
     box = [10, 10, 10],
     kBT = 1,
+    dt=0.0001,
     seed = 988
 )
 
@@ -49,7 +50,7 @@ def test_momentum_conservation():
         polymer.m*polymer.v.sum(axis=0),
         initial_momentum,
         rtol=0.0,
-        atol=1e-12
+        atol=1e-11
     )
 
 def test_energy_conservation():

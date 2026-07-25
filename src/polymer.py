@@ -29,7 +29,7 @@ class Polymer():
 
         for i in range(1, self.nMonomers):
             theta, alpha = self.rng.uniform(0, 2*np.pi, size=2)
-            direction = np.array([np.sin(theta)*np.cos(alpha), np.sin(theta)*np.sin(alpha), np.cos(theta)])
+            direction = self.randomUnitVec()
             step = self.bondLength * direction
             self.r[i] = self.r[i-1]+step*self.rng.uniform(0.95,1.05)
             self.r %= self.box
