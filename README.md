@@ -1,18 +1,56 @@
 # MPCD Polymer Simulation
 
-Python/NumPy implementation of a basic MPCD solvent and a coarse-grained polymer model, developed step by step following the structure of the MPCD lecture notes/book.
+## Overview
 
-## Project structure
+MPCD implementation using combination of classical MD for polymer behavior and coarse-grained simulation for a solvent
 
+## Motivation
+
+MPCD is cutting corners on elements of simulation, where we have no need for exact atomic interactions and replaces them with stochastic collision proccess instead. This allows for better performance, while still giving ability to see atomic impact on polymer beads. 
+
+## Current Features
+
+Coupled system with:
+- periodic boundary conditions
+- Galilean invariance
+- Stochastic rotation for collision
+- harmonic polymer bonds
+- validation plots and tests
+
+## Validation
+
+| Check | What it verifies | Expected behavior |
+|---|---|---|
+| Rotation matrix orthogonality | Collision is a true rotation | `R.T @ R ≈ I` |
+| Rotation matrix determinant | No reflection or scaling is introduced | `det(R) ≈ 1` |
+| Solvent momentum conservation | MPCD collision treats cell center-of-mass motion correctly | Total solvent momentum remains constant |
+| Solvent kinetic energy conservation | Relative velocities are rotated without changing their magnitude | Solvent kinetic energy remains constant |
+| Polymer force balance | Bond forces are internal forces | Sum of polymer forces is zero |
+| Polymer momentum conservation | Velocity Verlet with internal forces does not create net drift | Polymer momentum remains constant |
+| Polymer energy conservation | Polymer MD is numerically stable | Small bounded energy error |
+| Coupled cell momentum conservation | Mass-weighted solvent-polymer COM velocity is correct | Cell momentum remains constant |
+| Coupled COM velocity conservation | Coupled collision preserves cell center-of-mass motion | COM velocity remains constant |
+| Coupled relative speed conservation | Rotation preserves velocities relative to the COM | Relative speeds remain unchanged |
+| Full coupled momentum conservation | Solvent-polymer exchange does not create net momentum | Total momentum remains constant |
+| Full coupled kinetic energy conservation | Coupled collision does not heat or cool the system | Total kinetic energy remains constant during collision |
+| NVE total energy plot | Full simulation remains stable without thermostat | Total energy deviation remains small |
+
+
+## Repository Structure
 ```text
 mpcd_project/
-├── src/mpcd/
+├── notebooks/
+│   ├── plots.ipynb
+│   ├── SimulationDiagnostics.ipynb
+│   └── test_physics.py
+│
+├── src/
 │   ├── system.py          # solvent state and parameters
 │   ├── polymer.py         # polymer state and initialization
 │   ├── forces.py          # polymer force calculations
 │   ├── md.py              # velocity Verlet integrator
 │   ├── mpcd.py            # MPCD streaming, cells, collision
-│   ├── observables.py     # diagnostics and measured quantities
+│   └── observables.py     # diagnostics and measured quantities
 │
 ├── scripts/
 │  └─── run_sim.py
@@ -45,26 +83,30 @@ Run one test:
 pytest tests/test_polymer_forces.py::test_total_bond_force_zero
 ```
 
-Run scripts:
-
-```bash
-python scripts/run_solvent.py
-python scripts/run_polymer_md.py
-python scripts/run_polymer_mpcd.py
-```
-
 ## Recommended test parameters
 
 ```python
-nMonomers = 20
-box = np.array([10.0, 10.0, 10.0])
-m = 1.0
-kBT = 1.0
-bondLength = 0.5
-k = 10.0
-t = 0.001
-Number of steps = 10000
-SEED = <Any positive integerß>
+    system = System(
+        N=10_000,
+        box=[10.0, 10.0, 10.0],
+        a=1.0,
+        h=0.1,
+        m=1.0,
+        kBT=1.0,
+        alpha=2/3*np.pi,
+        seed=12345,
+    )
+
+    polymer = Polymer(
+        nMonomers=100,
+        box=[10.0, 10.0, 10.0],
+        bondLength=0.25,
+        m=2.0,
+        k=100.0,
+        kBT=1.0,
+        dt=0.0001,
+        seed=54321,
+    )
 ```
 
 ---
