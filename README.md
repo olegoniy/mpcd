@@ -41,8 +41,7 @@ Coupled system with:
 mpcd_project/
 ├── notebooks/
 │   ├── plots.ipynb
-│   ├── SimulationDiagnostics.ipynb
-│   └── test_physics.py
+│   └── SimulationDiagnostics.ipynb
 │
 ├── src/
 │   ├── system.py          # solvent state and parameters
