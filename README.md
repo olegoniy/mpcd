@@ -2,19 +2,6 @@
 
 Python/NumPy implementation of a basic MPCD solvent and a coarse-grained polymer model, developed step by step following the structure of the MPCD lecture notes/book.
 
-## Scope
-
-Current focus:
-
-- basic MPCD solvent
-- periodic boundary conditions
-- collision cells and random grid shift
-- stochastic rotation collision step
-- coarse-grained polymer beads
-- harmonic bond forces
-- velocity Verlet integration
-- validation tests for conservation laws and numerical stability
-
 ## Project structure
 
 ```text
@@ -27,19 +14,14 @@ mpcd_project/
 │   ├── mpcd.py            # MPCD streaming, cells, collision
 │   ├── coupling.py        # polymer-solvent coupling
 │   ├── observables.py     # diagnostics and measured quantities
-│   └── visualization.py   # debugging plots
 │
 ├── scripts/
-│   ├── run_solvent.py
-│   ├── run_polymer_md.py
-│   └── run_polymer_mpcd.py
+│  └─── run_sim.py
 │
 ├── tests/
-│   ├── test_rotation.py
-│   ├── test_cells.py
-│   ├── test_polymer_forces.py
+│   ├── test_mpcd.py
 │   ├── test_md.py
-│   └── test_coupling.py
+│   └── test_physics.py
 │
 └── README.md
 ```

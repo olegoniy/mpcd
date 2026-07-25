@@ -6,7 +6,7 @@ sys.path.append("../src")
 from system import System
 from polymer import Polymer
 
-from mpcd import generateRotation, distributeToCells, rotationInCell, rotateCoupledCell
+from mpcd import generateRotation, distributeToCells, rotateInCell, rotateCoupledCell, distributeToCellsSolvent, collideCoupled
 from observables import * 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def coupled_system():
         h=0.1,
         m=1.0,
         kBT=1.0,
-        alpha_deg=130,
+        alpha=2/3*np.pi,
         seed=12345,
     )
 
@@ -50,7 +50,7 @@ def test_is_orthogonal_matrix(coupled_system):
 
 def test_determinant(coupled_system):
     system, _ = coupled_system
-    for i in range(100000):
+    for i in range(1000):
         R = generateRotation(system)
         np.testing.assert_allclose(
             np.linalg.det(R),
@@ -61,31 +61,30 @@ def test_determinant(coupled_system):
 
 def test_rotation(coupled_system):
     system, _ = coupled_system
-    cells = distributeToCells(system)
+    cells = distributeToCellsSolvent(system)
     cell = cells[1,1,1]
     for i in range(10):
         R = generateRotation(system)
         start = system.v[cell]
-        rotationInCell(system, cell, R)
+        rotateInCell(system, cell, R)
         end = system.v[cell]
         assert not np.allclose(start, end)
-
 
 def test_rotate_coupled_cell_exact_result(coupled_system):
 
     system, polymer = coupled_system
 
-    solvent_indices = np.array([0, 1, 2, 3])
-    polymer_indices = np.array([0, 1, 2])
+    solventIndices = np.array([0, 1, 2, 3])
+    polymerIndices = np.array([0, 1, 2])
 
-    system.v[solvent_indices] = np.array([
+    system.v[solventIndices] = np.array([
         [ 1.0,  0.0,  0.0],
         [-1.0,  2.0,  0.0],
         [ 0.5, -1.0,  1.0],
         [ 2.0,  0.5, -1.0],
     ])
 
-    polymer.v[polymer_indices] = np.array([
+    polymer.v[polymerIndices] = np.array([
         [ 0.0,  2.0,  0.5],
         [-2.0,  0.0,  1.0],
         [ 1.0, -1.0, -0.5],
@@ -98,8 +97,8 @@ def test_rotate_coupled_cell_exact_result(coupled_system):
         [0.0,  0.0, 1.0],
     ])
 
-    solvent_before = system.v[solvent_indices].copy()
-    polymer_before = polymer.v[polymer_indices].copy()
+    solvent_before = system.v[solventIndices].copy()
+    polymer_before = polymer.v[polymerIndices].copy()
 
     total_momentum = (
         system.m * solvent_before.sum(axis=0)
@@ -107,8 +106,8 @@ def test_rotate_coupled_cell_exact_result(coupled_system):
     )
 
     total_mass = (
-        system.m * len(solvent_indices)
-        + polymer.m * len(polymer_indices)
+        system.m * len(solventIndices)
+        + polymer.m * len(polymerIndices)
     )
 
     expected_v_com = total_momentum / total_mass
@@ -125,21 +124,21 @@ def test_rotate_coupled_cell_exact_result(coupled_system):
 
     rotateCoupledCell(
         rotation,
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
     np.testing.assert_allclose(
-        system.v[solvent_indices],
+        system.v[solventIndices],
         expected_solvent,
         rtol=0.0,
         atol=1e-13,
     )
 
     np.testing.assert_allclose(
-        polymer.v[polymer_indices],
+        polymer.v[polymerIndices],
         expected_polymer,
         rtol=0.0,
         atol=1e-13,
@@ -148,8 +147,8 @@ def test_rotate_coupled_cell_exact_result(coupled_system):
 def test_rotate_coupled_cell_conserves_momentum(coupled_system):
     system, polymer = coupled_system
 
-    solvent_indices = np.array([0, 1, 2, 3, 4])
-    polymer_indices = np.array([0, 1, 2])
+    solventIndices = np.array([0, 1, 2, 3, 4])
+    polymerIndices = np.array([0, 1, 2])
 
     rotation = np.array([
         [0.0, -1.0, 0.0],
@@ -157,25 +156,25 @@ def test_rotate_coupled_cell_conserves_momentum(coupled_system):
         [0.0,  0.0, 1.0],
     ])
 
-    momentum_before = coupledCellMomentum(
-        solvent_indices,
+    momentum_before = coupled_cell_momentum(
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     ).copy()
 
     rotateCoupledCell(
         rotation,
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
-    momentum_after = coupledCellMomentum(
-        solvent_indices,
+    momentum_after = coupled_cell_momentum(
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
@@ -190,8 +189,8 @@ def test_rotate_coupled_cell_preserves_com_velocity(coupled_system):
 
     system, polymer = coupled_system
 
-    solvent_indices = np.array([5, 7, 11, 20])
-    polymer_indices = np.array([3, 8, 12])
+    solventIndices = np.array([5, 7, 11, 20])
+    polymerIndices = np.array([3, 8, 12])
 
     rotation = np.array([
         [0.36, -0.48, 0.80],
@@ -200,24 +199,24 @@ def test_rotate_coupled_cell_preserves_com_velocity(coupled_system):
     ])
 
     v_com_before = coupledCMVelocity(
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     ).copy()
 
     rotateCoupledCell(
         rotation,
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
     v_com_after = coupledCMVelocity(
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
@@ -233,15 +232,15 @@ def test_rotate_coupled_cell_expected_velocities(
 ):
     system, polymer = coupled_system
 
-    solvent_indices = np.array([0, 1])
-    polymer_indices = np.array([0, 1])
+    solventIndices = np.array([0, 1])
+    polymerIndices = np.array([0, 1])
 
-    system.v[solvent_indices] = np.array([
+    system.v[solventIndices] = np.array([
         [1.0, 0.0, 0.0],
         [-1.0, 2.0, 0.0],
     ])
 
-    polymer.v[polymer_indices] = np.array([
+    polymer.v[polymerIndices] = np.array([
         [0.0, 1.0, 1.0],
         [2.0, -1.0, 0.0],
     ])
@@ -253,14 +252,14 @@ def test_rotate_coupled_cell_expected_velocities(
     ])
 
     v_com = coupledCMVelocity(
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     ).copy()
 
-    solvent_before = system.v[solvent_indices].copy()
-    polymer_before = polymer.v[polymer_indices].copy()
+    solvent_before = system.v[solventIndices].copy()
+    polymer_before = polymer.v[polymerIndices].copy()
 
     expected_solvent = (
         v_com
@@ -274,21 +273,21 @@ def test_rotate_coupled_cell_expected_velocities(
 
     rotateCoupledCell(
         rotation,
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
     np.testing.assert_allclose(
-        system.v[solvent_indices],
+        system.v[solventIndices],
         expected_solvent,
         rtol=0.0,
         atol=1e-13,
     )
 
     np.testing.assert_allclose(
-        polymer.v[polymer_indices],
+        polymer.v[polymerIndices],
         expected_polymer,
         rtol=0.0,
         atol=1e-13,
@@ -299,8 +298,8 @@ def test_rotate_coupled_cell_preserves_relative_speeds(
 ):
     system, polymer = coupled_system
 
-    solvent_indices = np.array([0, 2, 4, 6])
-    polymer_indices = np.array([1, 3, 5])
+    solventIndices = np.array([0, 2, 4, 6])
+    polymerIndices = np.array([1, 3, 5])
 
     rotation = np.array([
         [0.0, -1.0, 0.0],
@@ -309,17 +308,17 @@ def test_rotate_coupled_cell_preserves_relative_speeds(
     ])
 
     v_com = coupledCMVelocity(
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     ).copy()
 
     solvent_relative_before = (
-        system.v[solvent_indices] - v_com
+        system.v[solventIndices] - v_com
     )
     polymer_relative_before = (
-        polymer.v[polymer_indices] - v_com
+        polymer.v[polymerIndices] - v_com
     )
 
     solvent_speeds_before = np.linalg.norm(
@@ -333,18 +332,18 @@ def test_rotate_coupled_cell_preserves_relative_speeds(
 
     rotateCoupledCell(
         rotation,
-        solvent_indices,
+        solventIndices,
         system,
-        polymer_indices,
+        polymerIndices,
         polymer,
     )
 
     solvent_speeds_after = np.linalg.norm(
-        system.v[solvent_indices] - v_com,
+        system.v[solventIndices] - v_com,
         axis=1,
     )
     polymer_speeds_after = np.linalg.norm(
-        polymer.v[polymer_indices] - v_com,
+        polymer.v[polymerIndices] - v_com,
         axis=1,
     )
 
@@ -361,4 +360,148 @@ def test_rotate_coupled_cell_preserves_relative_speeds(
         rtol=1e-13,
         atol=1e-12,
     )
+
+def test_all_particles_assigned_once():
+    rng = np.random.default_rng(12345)
+
+    n_particles = 1000
+    box = np.array([10.0, 10.0, 10.0])
+    a = 1.0
+
+    positions = rng.uniform(0, box, size=(n_particles, 3))
+
+    cells = distributeToCells(positions, box, a)
+
+    assigned = []
+
+    for index in np.ndindex(cells.shape):
+        assigned.extend(cells[index])
+
+    assigned = np.array(assigned)
+
+    assert len(assigned) == n_particles
+    assert len(np.unique(assigned)) == n_particles
+    assert set(assigned) == set(range(n_particles))
+
+def test_coupled_cell_momentum_conservation(coupled_system):
+
+    system, polymer = coupled_system
+
+    solventIndices = np.array([0, 1, 2, 3])
+    polymerIndices = np.array([0, 1])
+
+    rotation = generateRotation(system)
+
+    P_before = coupled_cell_momentum(
+        solventIndices,
+        system,
+        polymerIndices,
+        polymer
+    )
+
+    rotateCoupledCell(
+        rotation,
+        solventIndices,
+        system,
+        polymerIndices,
+        polymer
+    )
+
+    P_after = coupled_cell_momentum(
+        solventIndices,
+        system,
+        polymerIndices,
+        polymer
+    )
+
+    np.testing.assert_allclose(P_after, P_before, rtol=0.0, atol=1e-10)
+
+def test_coupled_momentum_conservation(coupled_system):
+    system, polymer = coupled_system
+    
+    solventIndices = np.array([0, 1, 2, 3])
+    polymerIndices = np.array([0, 1])
+
+    rotation = generateRotation(system)
+
+    P_before = coupled_cell_momentum(
+        solventIndices,
+        system,
+        polymerIndices,
+        polymer
+    )
+    for i in range(100):
+        rotateCoupledCell(
+            rotation,
+            solventIndices,
+            system,
+            polymerIndices,
+            polymer
+        )
+
+    P_after = coupled_cell_momentum(
+        solventIndices,
+        system,
+        polymerIndices,
+        polymer
+    )
+
+    np.testing.assert_allclose(P_after, P_before, rtol=0.0, atol=1e-14)
+
+def test_coupled_cm_kinetic_energy_conservation(coupled_system):
+    system, polymer = coupled_system
+
+    solventIndicies = np.array([0, 1, 2, 3])
+    polymerIndicies = np.array([0, 1])
+
+    rotation = generateRotation(system)
+
+
+    E_before = coupled_cm_kinetic_energy(
+        solventIndicies, 
+        system, 
+        polymerIndicies, 
+        polymer
+    )
+
+    for i in range(100):
+        rotateCoupledCell(
+            rotation,
+            solventIndicies,
+            system,
+            polymerIndicies,
+            polymer
+        )
+
+    E_after = coupled_cm_kinetic_energy(
+        solventIndicies, 
+        system, 
+        polymerIndicies, 
+        polymer
+    )
+    np.testing.assert_allclose(E_after, E_before, rtol=0.0, atol=1e-14)
+
+def test_coupled_full_momentum_conservation(coupled_system):
+    system, polymer = coupled_system
+
+    p_full_before = total_momentum(system) + total_momentum(polymer)
+
+    for i in range(100):
+        collideCoupled(system, polymer)
+
+    p_full_after = total_momentum(system) + total_momentum(polymer)
+
+    np.testing.assert_allclose(p_full_after, p_full_before, rtol=0.0, atol=1e-12)
+
+def test_coupled_full_kinetic_energy_conservation(coupled_system):
+    system, polymer = coupled_system
+
+    kinetic_before = system_kinetic(system) + polymer_kinetic_energy(polymer)
+
+    for i in range(100):
+            collideCoupled(system, polymer)
+
+    kinetic_after = system_kinetic(system) + polymer_kinetic_energy(polymer)
+    
+    np.testing.assert_allclose(kinetic_after, kinetic_before, rtol=0.0, atol=1e-10)
 

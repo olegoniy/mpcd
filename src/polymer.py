@@ -9,7 +9,7 @@ class Polymer():
         self.k = k
         self.dt = dt
 
-        self.box = box
+        self.box = np.array(box, dtype=float)
         self.kBT = kBT
 
         self.rng = np.random.default_rng(seed)
@@ -76,3 +76,4 @@ class Polymer():
     
     def totalEnergy(self):
         return self.kineticEnergy() + self.potentialEnergy()
+    

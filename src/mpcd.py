@@ -1,11 +1,11 @@
 import numpy as np
 from observables import coupledCMVelocity
 
-def streaming(system):
+def stream(system):
     system.r += system.h * system.v
     system.r %= system.box
 
-def distributeToCells(system):
+def distributeToCellsSolvent(system):
     particle_cells = np.floor(system.r/system.a).astype(int)    #What cells particle are in
     n_cells = np.ceil(system.box/system.a).astype(int)          #Create "boxes"
 
@@ -20,7 +20,7 @@ def distributeToCells(system):
 
     return cells
     
-def rotationInCell(system, cell, rotation):
+def rotateInCell(system, cell, rotation):
     cell = np.array(cell)
 
     v_com = system.v[cell].mean(axis=0)
@@ -55,16 +55,16 @@ def generateRotation(system):
         ]
     ])
 
-def collision(system):
+def collide(system):
     copyPositions = system.r
     shift = system.rng.uniform(-system.a / 2, system.a / 2, size=3)
     system.r = (system.r + shift) % system.box
-    cells = distributeToCells(system)
+    cells = distributeToCellsSolvent(system)
     for ix, iy, iz in np.ndindex(cells.shape):
         cell = cells[ix, iy, iz]
         rotationMatrix = generateRotation(system)
         if(system.r[cell].any()):
-            rotationInCell(system, cell, rotationMatrix)
+            rotateInCell(system, cell, rotationMatrix)
     system.r = copyPositions
 
 def rotateCoupledCell(rotation, solventIndicies, system, polymerIndicies = None, polymer = None ):
@@ -76,3 +76,43 @@ def rotateCoupledCell(rotation, solventIndicies, system, polymerIndicies = None,
     if polymer is not None:
         dv_monomers = polymer.v[polymerIndicies] - v_com
         polymer.v[polymerIndicies] = v_com + dv_monomers @ rotation.T
+
+def distributeToCells(positions, box, a):
+    n_cells = np.ceil(box / a).astype(int)
+    particle_cells = np.floor(positions / a).astype(int)
+
+    cells = np.empty((n_cells[0], n_cells[1], n_cells[2]), dtype=object)
+
+    for index in np.ndindex(cells.shape):
+        cells[index] = []
+    
+    for i, cell in enumerate(particle_cells):
+        ix, iy, iz = cell
+        cells[ix, iy, iz].append(i)
+
+    return cells
+
+def collideCoupled(system, polymer):
+    shift = system.rng.uniform(-system.a / 2, system.a / 2, size=3)
+
+    shifted_solvent = (system.r + shift) % system.box
+    shifted_polymer = (polymer.r + shift) % polymer.box
+
+    cells_solvent = distributeToCells(shifted_solvent, system.box, system.a)
+    cells_polymer = distributeToCells(shifted_polymer, polymer.box, system.a)
+
+    for index in np.ndindex(cells_solvent.shape):
+        solvent_indices = cells_solvent[index]
+        polymer_indices = cells_polymer[index]
+
+        if len(solvent_indices) + len(polymer_indices)> 1:
+            rotation = generateRotation(system)
+
+            rotateCoupledCell(
+                rotation,
+                solvent_indices,
+                system,
+                polymer_indices,
+                polymer
+            )
+    

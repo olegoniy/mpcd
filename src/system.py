@@ -2,14 +2,14 @@ import numpy as np
 
 
 class System:
-    def __init__(self, N, box, a=1.0, h=0.1, m=1.0, kBT=1.0, alpha_deg=228, seed=69):
+    def __init__(self, N, box, a=1.0, h=0.1, m=1.0, kBT=1.0, alpha=228, seed=69):
         self.N = N
         self.box = np.array(box, dtype=float)
         self.a = a
         self.h = h
         self.m = m
         self.kBT = kBT
-        self.alpha = np.deg2rad(alpha_deg)
+        self.alpha = alpha
 
         self.rng = np.random.default_rng(seed) # to generate random numbers
 
