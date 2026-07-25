@@ -156,15 +156,15 @@ SEED = <Any positive integerß>
 
 ### MPCD-polymer coupling
 
-- [ ] Assign polymer beads to MPCD collision cells
-- [ ] Use the same shifted grid for solvent particles and polymer beads
-- [ ] Compute mass-weighted cell center-of-mass velocity
-- [ ] Rotate solvent relative velocities
-- [ ] Rotate polymer bead relative velocities
-- [ ] Test coupled-cell momentum conservation
-- [ ] Test coupled-cell kinetic energy conservation
-- [ ] Run solvent + polymer simulation
-- [ ] Track polymer bond lengths during coupled simulation
+- [x] Assign polymer beads to MPCD collision cells
+- [x] Use the same shifted grid for solvent particles and polymer beads
+- [x] Compute mass-weighted cell center-of-mass velocity
+- [x] Rotate solvent relative velocities
+- [x] Rotate polymer bead relative velocities
+- [x] Test coupled-cell momentum conservation
+- [x] Test coupled-cell kinetic energy conservation
+- [x] Run solvent + polymer simulation
+- [x] Track polymer bond lengths during coupled simulation
 - [ ] Track polymer center-of-mass motion
 
 ---
