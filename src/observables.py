@@ -6,6 +6,15 @@ def total_momentum(system):
 def system_kinetic(system):
     return system.m * np.sum(system.v**2)*0.5
 
+def solvent_temperature(system, kB=1.0, remove_com=True):
+    v = system.v.copy()
+    dof = 3 * system.N
+    if remove_com:
+        v -= v.mean(axis=0)
+        dof -= 3
+
+    return 2 * system_kinetic(system) / (dof * kB)
+
 def coupled_cell_momentum(solventIndicies, system, polymerIndicies=None, polymer=None):
     monomersMomentum = np.zeros(shape=3)
     solventMomentum = np.sum(system.v[solventIndicies], axis=0) * system.m
@@ -32,6 +41,12 @@ def bond_lengths(polymer):
     res = []
     for i in range(polymer.nMonomers - 1):
         res.append(polymer.distInBC(i, i+1))
+    return np.array(res)
+
+def bond_vectors(polymer):
+    res = []
+    for i in range(polymer.nMonomers - 1):
+        res.append(polymer.vecDiffInBC(i, i+1))
     return np.array(res)
 
 def polymer_kinetic_energy(polymer):
