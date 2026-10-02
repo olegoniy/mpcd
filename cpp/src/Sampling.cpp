@@ -20,4 +20,34 @@ void SolventSamples::sample(const System& system, std::size_t step)
     momentum.push_back(solventMomentum(system));
 }
 
+SolventSamples& SolventSamples::operator+=(const SolventSamples& other)
+{
+    std::size_t offset = steps.empty() ? 0 : steps.back();
+
+    for (std::size_t step : other.steps)
+    {
+        steps.push_back(offset + step);
+    }
+
+    temperature.insert(
+        temperature.end(),
+        other.temperature.begin(),
+        other.temperature.end()
+    );
+
+    kineticEnergy.insert(
+        kineticEnergy.end(),
+        other.kineticEnergy.begin(),
+        other.kineticEnergy.end()
+    );
+
+    momentum.insert(
+        momentum.end(),
+        other.momentum.begin(),
+        other.momentum.end()
+    );
+
+    return *this;
+}
+
 }

@@ -17,16 +17,6 @@ namespace {
         }
     }
 
-    struct CellList 
-    {
-        std::size_t nx;
-        std::size_t ny;
-        std::size_t nz;
-
-        std::vector<std::size_t> offsets;
-        std::vector<std::size_t> indices;  
-    };
-
     Eigen::Matrix3d generateRotation(std::mt19937& rng, double alpha)
     {
         std::uniform_real_distribution<double> phiDist(0.0, 2.0 * std::numbers::pi);
@@ -63,7 +53,7 @@ namespace {
         return R;
     }
 
-    void rotateInCell(mpcd::System& system, const CellList& cells, std::size_t cellId, const Eigen::Matrix3d& rotation)
+    void rotateInCell(mpcd::System& system, const mpcd::CellList& cells, std::size_t cellId, const Eigen::Matrix3d& rotation)
     {
         const std::size_t begin = cells.offsets[cellId];
         const std::size_t end = cells.offsets[cellId + 1];
@@ -91,6 +81,15 @@ namespace {
             system.v.row(i) =
                 (v_com + rotation * dv).transpose();
         }
+    }
+}
+
+namespace mpcd 
+{
+    void stream(System& system)
+    {
+        system.r += system.h * system.v;
+        wrapPositions(system.r, system.box);
     }
 
     CellList distributeToCells(const ParticleMatrix& positions, const Eigen::Vector3d& box, double a)
@@ -145,16 +144,6 @@ namespace {
         return cells;
     }
 
-}
-
-namespace mpcd 
-{
-    void stream(System& system)
-    {
-        system.r += system.h * system.v;
-        wrapPositions(system.r, system.box);
-    }
-
     void collide(System& system)
     {
         // random grid shift 
@@ -205,4 +194,4 @@ namespace mpcd
 
         return samples;
     }
-} 
+}

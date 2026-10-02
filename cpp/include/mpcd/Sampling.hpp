@@ -14,6 +14,8 @@ struct SolventSamples {
 
     void reserve(std::size_t n);
     void sample(const System& system, std::size_t step);
+
+    SolventSamples& operator+=(const SolventSamples& other);
 };
 
 }

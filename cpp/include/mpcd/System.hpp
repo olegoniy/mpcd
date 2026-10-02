@@ -48,7 +48,9 @@ namespace mpcd {
         {};
 
         void initPositionsUniform();
+        void initPositionsUniformUpper();
         void initVelocitiesNormal();
+        void initVelocitiesNonMaxwell();
         void removeDrift();
     };
 }
