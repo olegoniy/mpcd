@@ -1,7 +1,8 @@
 #include <mpcd/Sampling.hpp>
 #include <mpcd/Observables.hpp>
 
-namespace mpcd {
+namespace mpcd
+{
 
 void SolventSamples::reserve(std::size_t n)
 {
@@ -48,6 +49,76 @@ SolventSamples& SolventSamples::operator+=(const SolventSamples& other)
     );
 
     return *this;
+}
+
+
+void PolymerSamples::reserve(std::size_t n)
+{
+    steps.reserve(n);
+
+    kineticEnergy.reserve(n);
+    potentialEnergy.reserve(n);
+    totalEnergy.reserve(n);
+
+    averageBondLength.reserve(n);
+    endToEndDistance.reserve(n);
+}
+
+void PolymerSamples::reserveObservables(std::size_t n)
+{
+    steps.reserve(n);
+
+    kineticEnergy.reserve(n);
+    potentialEnergy.reserve(n);
+    totalEnergy.reserve(n);
+
+    averageBondLength.reserve(n);
+    endToEndDistance.reserve(n);
+}
+
+void PolymerSamples::reserveFrames(std::size_t n)
+{
+    frameSteps.reserve(n);
+    frames.reserve(n);
+}
+
+void PolymerSamples::reserveBondVectors(std::size_t n)
+{
+    bondVectorSteps.reserve(n);
+    bondVectors.reserve(n);
+}
+
+/*
+void PolymerSamples::sample(const Polymer& polymer, std::size_t step)
+{
+    steps.push_back(step);
+    kineticEnergy.push_back(polymerKineticEnergy(polymer));
+    potentialEnergy.push_back(polymerPotentialEnergy(polymer));
+    totalEnergy.push_back(polymerTotalEnergy(polymer));
+}
+*/
+
+void PolymerSamples::sampleObservables(const Polymer& polymer, std::size_t step)
+{
+    steps.push_back(step);
+
+    kineticEnergy.push_back(polymerKineticEnergy(polymer));
+    potentialEnergy.push_back(polymerPotentialEnergy(polymer));
+    totalEnergy.push_back(polymerTotalEnergy(polymer));
+    averageBondLength.push_back(polymerAverageBondLength(polymer));
+    endToEndDistance.push_back(polymerEndToEndDistance(polymer));
+}
+
+void PolymerSamples::sampleFrame(const Polymer& polymer, std::size_t step)
+{
+    frameSteps.push_back(step);
+    frames.push_back(polymer.r);
+}
+
+void PolymerSamples::sampleBondVectors(const Polymer& polymer, std::size_t step)
+{
+    bondVectorSteps.push_back(step);
+    bondVectors.push_back(polymerBondVectors(polymer));
 }
 
 }

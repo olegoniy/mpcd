@@ -5,13 +5,18 @@
 #include <pybind11/operators.h>
 
 #include <mpcd/System.hpp>
+#include <mpcd/Polymer.hpp> 
 #include <mpcd/Sampling.hpp>
+#include <mpcd/Observables.hpp>
+#include <mpcd/Force.hpp>
 #include <mpcd/mpcd.hpp>
+#include <mpcd/MD.hpp>
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(mpcd_cpp, m)
 {
+    // Solvent bindings
     py::class_<mpcd::System>(m, "System")
         .def(
             py::init<
@@ -147,5 +152,250 @@ PYBIND11_MODULE(mpcd_cpp, m)
     .def_readonly("kinetic_energy", &mpcd::SolventSamples::kineticEnergy)
     .def_readonly("momentum", &mpcd::SolventSamples::momentum)
     .def(py::self += py::self);
+
+    // Polymer bindings
+    py::class_<mpcd::Polymer>(m, "Polymer")
+    .def(
+        py::init<
+            std::size_t,
+            const Eigen::Vector3d&,
+            double,
+            double,
+            double,
+            double,
+            double,
+            unsigned int
+        >(),
+        py::arg("nMonomers"),
+        py::arg("box"),
+        py::arg("dt"),
+        py::arg("bondLength"),
+        py::arg("m"),
+        py::arg("k"),
+        py::arg("kBT"),
+        py::arg("seed")
+    )
+
+    .def(
+        "initPositionsRandomWalk",
+        &mpcd::Polymer::initPositionsRandomWalk
+    )
+
+    .def(
+        "initPositionsLinear",
+        &mpcd::Polymer::initPositionsLinear
+    )
+
+    .def(
+        "initVelocitiesNormal",
+        &mpcd::Polymer::initVelocitiesNormal
+    )
+
+    .def(
+        "removeDrift",
+        &mpcd::Polymer::removeDrift
+    )
+
+    .def(
+        "distancePBC",
+        &mpcd::Polymer::distancePBC,
+        py::arg("idx1"),
+        py::arg("idx2")
+    )
+
+    .def(
+        "vecDiffPBC",
+        &mpcd::Polymer::vecDiffPBC,
+        py::arg("idx1"),
+        py::arg("idx2")
+    )
+
+    .def_readonly(
+        "N",
+        &mpcd::Polymer::N
+    )
+
+    .def_readonly(
+        "box",
+        &mpcd::Polymer::box
+    )
+
+    .def_readonly(
+        "m",
+        &mpcd::Polymer::m
+    )
+
+    .def_readonly(
+        "kBT",
+        &mpcd::Polymer::kBT
+    )
+
+    .def_readonly(
+        "k",
+        &mpcd::Polymer::k
+    )
+
+    .def_readonly(
+        "r0",
+        &mpcd::Polymer::r0
+    )
+
+    .def_readonly(
+        "dt",
+        &mpcd::Polymer::dt
+    )
+
+    .def_property_readonly(
+        "r",
+        [](mpcd::Polymer& polymer)
+        {
+            return py::array(
+                {
+                    static_cast<py::ssize_t>(polymer.N),
+                    static_cast<py::ssize_t>(3)
+                },
+                {
+                    static_cast<py::ssize_t>(
+                        3 * sizeof(double)
+                    ),
+                    static_cast<py::ssize_t>(
+                        sizeof(double)
+                    )
+                },
+                polymer.r.data(),
+                py::cast(&polymer)
+            );
+        }
+    )
+
+    .def_property_readonly(
+        "v",
+        [](mpcd::Polymer& polymer)
+        {
+            return py::array(
+                {
+                    static_cast<py::ssize_t>(polymer.N),
+                    static_cast<py::ssize_t>(3)
+                },
+                {
+                    static_cast<py::ssize_t>(
+                        3 * sizeof(double)
+                    ),
+                    static_cast<py::ssize_t>(
+                        sizeof(double)
+                    )
+                },
+                polymer.v.data(),
+                py::cast(&polymer)
+            );
+        }
+    )
+
+    .def_property_readonly(
+        "f",
+        [](mpcd::Polymer& polymer)
+        {
+            return py::array(
+                {
+                    static_cast<py::ssize_t>(polymer.N),
+                    static_cast<py::ssize_t>(3)
+                },
+                {
+                    static_cast<py::ssize_t>(
+                        3 * sizeof(double)
+                    ),
+                    static_cast<py::ssize_t>(
+                        sizeof(double)
+                    )
+                },
+                polymer.f.data(),
+                py::cast(&polymer)
+            );
+        }
+    );
+
+    py::class_<mpcd::PolymerSamples>(m, "PolymerSamples")
+    .def_readonly(
+        "steps",
+        &mpcd::PolymerSamples::steps
+    )
+    .def_readonly(
+        "kineticEnergy",
+        &mpcd::PolymerSamples::kineticEnergy
+    )
+    .def_readonly(
+        "potentialEnergy",
+        &mpcd::PolymerSamples::potentialEnergy
+    )
+    .def_readonly(
+        "totalEnergy",
+        &mpcd::PolymerSamples::totalEnergy
+    )
+    .def_readonly(
+        "averageBondLength",
+        &mpcd::PolymerSamples::averageBondLength
+    )
+    .def_readonly(
+        "endToEndDistance",
+        &mpcd::PolymerSamples::endToEndDistance
+    )
+    .def_readonly(
+        "frameSteps",
+        &mpcd::PolymerSamples::frameSteps
+    )
+    .def_readonly(
+        "frames",
+        &mpcd::PolymerSamples::frames
+    )
+    .def_readonly(
+        "bondVectorSteps",
+        &mpcd::PolymerSamples::bondVectorSteps
+    )
+
+    .def_readonly(
+        "bondVectors",
+        &mpcd::PolymerSamples::bondVectors
+    );
+
+    m.def(
+        "polymerKineticEnergy",
+        &mpcd::polymerKineticEnergy,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "polymerPotentialEnergy",
+        &mpcd::polymerPotentialEnergy,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "polymerTotalEnergy",
+        &mpcd::polymerTotalEnergy,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "polymerBondLengths",
+        &mpcd::polymerBondLengths,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "polymerBondVectors",
+        &mpcd::polymerBondVectors,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "runPolymer",
+        &mpcd::runPolymer,
+        py::arg("polymer"),
+        py::arg("steps"),
+        py::arg("sample_every"),
+        py::arg("frame_every"),
+        py::arg("bond_vector_every")
+    );
+    
 
 }   

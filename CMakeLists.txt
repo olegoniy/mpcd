@@ -16,6 +16,9 @@ add_library(mpcd_core
     cpp/src/MPCD.cpp
     cpp/src/Sampling.cpp
     cpp/src/Observables.cpp
+    cpp/src/Polymer.cpp
+    cpp/src/Force.cpp
+    cpp/src/MD.cpp
 )
 
 target_include_directories(mpcd_core PUBLIC
