@@ -18,5 +18,7 @@ std::vector<double> polymerBondLengths(const Polymer& polymer);
 std::vector<Eigen::Vector3d> polymerBondVectors(const Polymer& polymer);
 double polymerAverageBondLength(const Polymer& polymer);
 double polymerEndToEndDistance(const Polymer& polymer);
+Eigen::Vector3d polymerMomentum(const Polymer& polymer);
+double polymerMaxBondLength(const Polymer& polymer);
 
 }

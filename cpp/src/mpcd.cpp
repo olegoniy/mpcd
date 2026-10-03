@@ -1,14 +1,23 @@
 #include <mpcd/mpcd.hpp>
+
 #include <mpcd/System.hpp>
+#include <mpcd/MD.hpp>
+#include <mpcd/Polymer.hpp>
+#include <mpcd/Sampling.hpp>
+#include <mpcd/Force.hpp>
+
 #include <cmath>
 #include <numbers>
+#include <stdexcept>
 
 namespace {
 
     void wrapPositions(ParticleMatrix& positions, const Eigen::Vector3d& box)
     {
-        for (Eigen::Index i = 0; i < positions.rows(); ++i) {
-            for (Eigen::Index d = 0; d < 3; ++d) {
+        for (Eigen::Index i = 0; i < positions.rows(); ++i) 
+        {
+            for (Eigen::Index d = 0; d < 3; ++d) 
+            {
                 positions(i, d) = std::fmod(positions(i, d), box(d));
 
                 if (positions(i, d) < 0.0)
@@ -80,6 +89,59 @@ namespace {
 
             system.v.row(i) =
                 (v_com + rotation * dv).transpose();
+        }
+    }
+
+    Eigen::Vector3d coupledCMVelocity(const mpcd::System& system, const mpcd::CellList& solventCells, const mpcd::Polymer& polymer, const mpcd::CellList& polymerCells, std::size_t cellId)
+    {
+        const std::size_t solventBegin = solventCells.offsets[cellId];
+        const std::size_t solventEnd = solventCells.offsets[cellId + 1];
+
+        const std::size_t polymerBegin = polymerCells.offsets[cellId];
+        const std::size_t polymerEnd = polymerCells.offsets[cellId + 1];
+
+        Eigen::Vector3d momentum = Eigen::Vector3d::Zero();
+        double totalMass = 0.0;
+
+        for (std::size_t k = solventBegin; k < solventEnd; ++k) 
+        {
+            const std::size_t i = solventCells.indices[k];
+            momentum += system.m*system.v.row(i).transpose();
+            totalMass += system.m;
+        }
+
+        for (std::size_t k = polymerBegin; k < polymerEnd; ++k)
+        {
+            const std::size_t i = polymerCells.indices[k];
+            momentum += polymer.m*polymer.v.row(i).transpose();
+            totalMass += polymer.m;
+        }
+
+        return momentum / totalMass;
+    }
+
+    void rotateCoupledCell(mpcd::System& system, const mpcd::CellList& solventCells, mpcd::Polymer& polymer, const mpcd::CellList& polymerCells, std::size_t cellId, const Eigen::Matrix3d& rotation)
+    {
+        const std::size_t solventBegin = solventCells.offsets[cellId];
+        const std::size_t solventEnd = solventCells.offsets[cellId + 1];
+
+        const std::size_t polymerBegin = polymerCells.offsets[cellId];
+        const std::size_t polymerEnd = polymerCells.offsets[cellId + 1];
+
+        const Eigen::Vector3d v_com = coupledCMVelocity(system, solventCells, polymer, polymerCells, cellId);
+
+        for (std::size_t k = solventBegin; k < solventEnd; ++k)
+        {
+            const std::size_t i = solventCells.indices[k];
+            Eigen::Vector3d dv = system.v.row(i).transpose() - v_com;
+            system.v.row(i) = (v_com + rotation * dv).transpose();
+        }
+
+        for (std::size_t k = polymerBegin; k < polymerEnd; ++k)
+        {
+            const std::size_t i = polymerCells.indices[k];
+            Eigen::Vector3d dv = polymer.v.row(i).transpose() - v_com;
+            polymer.v.row(i) = (v_com + rotation * dv).transpose();
         }
     }
 }
@@ -176,6 +238,46 @@ namespace mpcd
         }
     }
 
+    void collideCoupled(System& system, Polymer& polymer)
+    {
+        std::uniform_real_distribution<double> dist(-system.a/2, system.a/2);
+
+        Eigen::Vector3d shift(
+            dist(system.rng),
+            dist(system.rng),
+            dist(system.rng)
+        );
+
+        ParticleMatrix shiftedSolvent = system.r.rowwise() + shift.transpose();
+        Polymer::ParticleMatrix shiftedPolymer = polymer.r.rowwise() + shift.transpose();
+
+        wrapPositions(shiftedSolvent, system.box);
+        wrapPositions(shiftedPolymer, polymer.box);
+
+        CellList solventCells = distributeToCells(shiftedSolvent, system.box, system.a);
+        CellList polymerCells = distributeToCells(shiftedPolymer, polymer.box, system.a);
+
+        const std::size_t nCells = solventCells.nx * solventCells.ny * solventCells.nz;
+
+        for (std::size_t cellId = 0; cellId < nCells; ++cellId)
+        {
+            const std::size_t solventBegin = solventCells.offsets[cellId];
+            const std::size_t solventEnd = solventCells.offsets[cellId + 1];
+
+            const std::size_t polymerBegin = polymerCells.offsets[cellId];
+            const std::size_t polymerEnd = polymerCells.offsets[cellId + 1];
+
+            const std::size_t solventCount = solventEnd - solventBegin;
+            const std::size_t polymerCount = polymerEnd - polymerBegin;
+
+            if (solventCount + polymerCount > 1)
+            {
+                const Eigen::Matrix3d rotation = generateRotation(system.rng, system.alpha);
+                rotateCoupledCell(system, solventCells, polymer, polymerCells,cellId, rotation);
+            }
+        }
+    }
+
     SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod)
     {
         SolventSamples samples;
@@ -190,6 +292,71 @@ namespace mpcd
             collide(system);
             if (samplePeriod > 0 && (step + 1) % samplePeriod == 0)
                 samples.sample(system, step + 1);
+        }
+
+        return samples;
+    }
+
+    void coupledStep(System& system, Polymer& polymer)
+    {
+        const double ratio = system.h / polymer.dt;
+        const std::size_t mdSteps = static_cast<std::size_t>(std::llround(ratio));
+
+        if (std::abs(ratio - static_cast<double>(mdSteps)) > 1e-10)
+            throw std::runtime_error("system.h must be an integer multiple of polymer.dt");
+
+        for (std::size_t step = 0; step < mdSteps; ++step)
+            velocityVerletStep(polymer);
+
+        stream(system);
+        collideCoupled(system, polymer);
+    }
+
+    CoupledSamples runCoupled(System& system, Polymer& polymer, std::size_t steps, std::size_t sampleEvery, std::size_t frameEvery, std::size_t bondVectorEvery)
+    {
+        CoupledSamples samples;
+
+        if (sampleEvery > 0)
+        {
+            samples.solvent.reserve(steps / sampleEvery + 1);
+            samples.polymer.reserveObservables(steps / sampleEvery + 1);
+        }
+
+        if (frameEvery > 0)
+            samples.polymer.reserveFrames(steps / frameEvery + 1);
+
+        if (bondVectorEvery > 0)
+            samples.polymer.reserveBondVectors(steps / bondVectorEvery + 1);
+
+        computeBondForces(polymer);
+
+        if (sampleEvery > 0)
+        {
+            samples.solvent.sample(system, 0);
+            samples.polymer.sampleObservables(polymer, 0);
+        }
+
+        if (frameEvery > 0)
+            samples.polymer.sampleFrame(polymer, 0);
+
+        if (bondVectorEvery > 0)
+            samples.polymer.sampleBondVectors(polymer, 0);
+
+        for (std::size_t step = 1; step <= steps; ++step)
+        {
+            coupledStep(system, polymer);
+
+            if (sampleEvery > 0 && step % sampleEvery == 0)
+            {
+                samples.solvent.sample(system, step);
+                samples.polymer.sampleObservables(polymer, step);
+            }
+
+            if (frameEvery > 0 && step % frameEvery == 0)
+                samples.polymer.sampleFrame(polymer, step);
+
+            if (bondVectorEvery > 0 && step % bondVectorEvery == 0)
+                samples.polymer.sampleBondVectors(polymer, step);
         }
 
         return samples;

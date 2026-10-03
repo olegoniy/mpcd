@@ -74,6 +74,8 @@ void PolymerSamples::reserveObservables(std::size_t n)
 
     averageBondLength.reserve(n);
     endToEndDistance.reserve(n);
+    maxBondLength.reserve(n);
+    momentum.reserve(n);
 }
 
 void PolymerSamples::reserveFrames(std::size_t n)
@@ -107,6 +109,8 @@ void PolymerSamples::sampleObservables(const Polymer& polymer, std::size_t step)
     totalEnergy.push_back(polymerTotalEnergy(polymer));
     averageBondLength.push_back(polymerAverageBondLength(polymer));
     endToEndDistance.push_back(polymerEndToEndDistance(polymer));
+    maxBondLength.push_back(polymerMaxBondLength(polymer));
+    momentum.push_back(polymerMomentum(polymer) );
 }
 
 void PolymerSamples::sampleFrame(const Polymer& polymer, std::size_t step)

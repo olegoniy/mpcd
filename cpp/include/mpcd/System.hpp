@@ -54,9 +54,9 @@ public:
     System(
         std::size_t N,
         const Eigen::Vector3d& box,
-        float a,
-        float h,
-        float m,
+        double a,
+        double h,
+        double m,
         double kBT,
         double alpha,
         unsigned int seed

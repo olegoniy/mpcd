@@ -102,4 +102,30 @@ double polymerEndToEndDistance(const Polymer& polymer)
     return polymer.distancePBC(0, polymer.N - 1);
 }
 
+Eigen::Vector3d polymerMomentum(const Polymer& polymer)
+{
+    Eigen::Vector3d momentum = Eigen::Vector3d::Zero();
+
+    for (std::size_t i = 0; i < polymer.N; ++i)
+        momentum += polymer.m * polymer.v.row(i).transpose();
+
+    return momentum;
+}
+
+double polymerMaxBondLength(const Polymer& polymer)
+{
+    if (polymer.N < 2)
+        return 0.0;
+
+    double maxLength = 0.0;
+
+    for (std::size_t i = 0; i < polymer.N - 1; ++i)
+    {
+        const double length = polymer.distancePBC(i, i + 1);
+        if (length > maxLength)
+            maxLength = length;
+    }
+
+    return maxLength;
+}
 }

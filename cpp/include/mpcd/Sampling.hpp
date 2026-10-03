@@ -46,6 +46,13 @@ struct PolymerSamples
     void sampleObservables(const Polymer& polymer, std::size_t step);
     void sampleFrame(const Polymer& polymer, std::size_t step);
     void sampleBondVectors(const Polymer& polymer,std::size_t step);
+    std::vector<double> maxBondLength;
+    std::vector<Eigen::Vector3d> momentum;
 };
 
+struct CoupledSamples
+{
+    SolventSamples solvent;
+    PolymerSamples polymer;
+};
 }

@@ -37,7 +37,7 @@ PYBIND11_MODULE(mpcd_cpp, m)
         .def("initPositionsUniformUpper",
             &mpcd::System::initPositionsUniformUpper)
 
-        .def("initVelocitiesMaxwell",
+        .def("initVelocitiesNormal",
              &mpcd::System::initVelocitiesNormal)
 
         .def("initVelocitiesNonMaxwell",
@@ -149,7 +149,7 @@ PYBIND11_MODULE(mpcd_cpp, m)
     py::class_<mpcd::SolventSamples>(m, "SolventSamples")
     .def_readonly("steps", &mpcd::SolventSamples::steps)
     .def_readonly("temperature", &mpcd::SolventSamples::temperature)
-    .def_readonly("kinetic_energy", &mpcd::SolventSamples::kineticEnergy)
+    .def_readonly("kineticEnergy", &mpcd::SolventSamples::kineticEnergy)
     .def_readonly("momentum", &mpcd::SolventSamples::momentum)
     .def(py::self += py::self);
 
@@ -355,6 +355,15 @@ PYBIND11_MODULE(mpcd_cpp, m)
     .def_readonly(
         "bondVectors",
         &mpcd::PolymerSamples::bondVectors
+    )
+    .def_readonly(
+        "maxBondLength",
+        &mpcd::PolymerSamples::maxBondLength
+    )
+
+    .def_readonly(
+        "momentum",
+        &mpcd::PolymerSamples::momentum
     );
 
     m.def(
@@ -397,5 +406,26 @@ PYBIND11_MODULE(mpcd_cpp, m)
         py::arg("bond_vector_every")
     );
     
+
+    py::class_<mpcd::CoupledSamples>(m, "CoupledSamples")
+    .def_readonly(
+        "solvent",
+        &mpcd::CoupledSamples::solvent
+    )
+    .def_readonly(
+        "polymer",
+        &mpcd::CoupledSamples::polymer
+    );
+
+    m.def(
+    "runCoupled",
+    &mpcd::runCoupled,
+    py::arg("system"),
+    py::arg("polymer"),
+    py::arg("steps"),
+    py::arg("sample_every"),
+    py::arg("frame_every"),
+    py::arg("bond_vector_every")
+);
 
 }   
