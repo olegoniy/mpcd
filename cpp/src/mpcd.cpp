@@ -120,6 +120,97 @@ namespace {
         return momentum / totalMass;
     }
 
+    double coupledRelativeKineticEnergy(const mpcd::System& system,const mpcd::CellList& solventCells, const mpcd::Polymer& polymer, const mpcd::CellList& polymerCells, std::size_t cellId, const Eigen::Vector3d& v_com)
+    {
+        double energy = 0.0;
+
+        const std::size_t solventBegin = solventCells.offsets[cellId];
+        const std::size_t solventEnd = solventCells.offsets[cellId + 1];
+
+        for (std::size_t k = solventBegin; k < solventEnd; ++k)
+        {
+            const std::size_t i = solventCells.indices[k];
+            const Eigen::Vector3d dv = system.v.row(i).transpose() - v_com;
+            energy += 0.5 * system.m * dv.squaredNorm();
+        }
+
+        const std::size_t polymerBegin = polymerCells.offsets[cellId];
+        const std::size_t polymerEnd = polymerCells.offsets[cellId + 1];
+
+        for (std::size_t k = polymerBegin; k < polymerEnd; ++k)
+        {
+            const std::size_t i = polymerCells.indices[k];
+            const Eigen::Vector3d dv = polymer.v.row(i).transpose() - v_com;
+            energy += 0.5 * polymer.m * dv.squaredNorm();
+        }
+
+        return energy;
+    }
+
+    double sampleCanonicalKineticEnergy(std::mt19937& rng, std::size_t particleCount, double kBT)
+    {
+        const double degreesOfFreedom = 3.0 * static_cast<double>(particleCount - 1);
+        const double shape = 0.5 * degreesOfFreedom;
+        std::gamma_distribution<double> distribution(shape, kBT);
+
+        return distribution(rng);
+    }
+
+    void thermostatCoupledCell(mpcd::System& system, const mpcd::CellList& solventCells, mpcd::Polymer& polymer, const mpcd::CellList& polymerCells, std::size_t cellId)
+    {
+        const std::size_t solventCount = solventCells.offsets[cellId + 1] - solventCells.offsets[cellId];
+        const std::size_t polymerCount = polymerCells.offsets[cellId + 1] - polymerCells.offsets[cellId];
+
+        const std::size_t particleCount = solventCount + polymerCount;
+
+        if (particleCount < 2)
+            return;
+
+        const Eigen::Vector3d v_com =
+            coupledCMVelocity(
+                system,
+                solventCells,
+                polymer,
+                polymerCells,
+                cellId
+            );
+
+        const double currentEnergy =
+            coupledRelativeKineticEnergy(
+                system,
+                solventCells,
+                polymer,
+                polymerCells,
+                cellId,
+                v_com
+            );
+
+        if (currentEnergy < 1e-14)
+            return;
+
+        const double targetEnergy = sampleCanonicalKineticEnergy(system.rng, particleCount, system.kBT);
+        const double scale = std::sqrt(targetEnergy / currentEnergy);
+        const std::size_t solventBegin = solventCells.offsets[cellId];
+        const std::size_t solventEnd = solventCells.offsets[cellId + 1];
+        for (std::size_t k = solventBegin; k < solventEnd; ++k)
+        {
+            const std::size_t i = solventCells.indices[k];
+            const Eigen::Vector3d dv = system.v.row(i).transpose() - v_com;
+
+            system.v.row(i) = (v_com + scale * dv).transpose();
+        }
+
+        const std::size_t polymerBegin = polymerCells.offsets[cellId];
+        const std::size_t polymerEnd = polymerCells.offsets[cellId + 1];
+
+        for (std::size_t k = polymerBegin; k < polymerEnd; ++k)
+        {
+            const std::size_t i = polymerCells.indices[k];
+            const Eigen::Vector3d dv = polymer.v.row(i).transpose() - v_com;
+            polymer.v.row(i) = (v_com + scale*dv).transpose();
+        }
+    }
+
     void rotateCoupledCell(mpcd::System& system, const mpcd::CellList& solventCells, mpcd::Polymer& polymer, const mpcd::CellList& polymerCells, std::size_t cellId, const Eigen::Matrix3d& rotation)
     {
         const std::size_t solventBegin = solventCells.offsets[cellId];
@@ -278,6 +369,56 @@ namespace mpcd
         }
     }
 
+    void collideCoupledThermostatted(System& system, Polymer& polymer)
+    {
+        std::uniform_real_distribution<double> dist(-system.a / 2.0, system.a / 2.0);
+
+        const Eigen::Vector3d shift(
+            dist(system.rng),
+            dist(system.rng),
+            dist(system.rng)
+        );
+
+        ParticleMatrix shiftedSolvent = system.r.rowwise() + shift.transpose();
+        Polymer::ParticleMatrix shiftedPolymer = polymer.r.rowwise() + shift.transpose();
+
+        wrapPositions(shiftedSolvent, system.box);
+        wrapPositions(shiftedPolymer, polymer.box);
+
+        CellList solventCells = distributeToCells(shiftedSolvent, system.box, system.a);
+        CellList polymerCells = distributeToCells(shiftedPolymer, polymer.box, system.a);
+
+        const std::size_t nCells = solventCells.nx*solventCells.ny*solventCells.nz;
+
+        for (std::size_t cellId = 0; cellId < nCells; ++cellId)
+        {
+            const std::size_t solventCount = solventCells.offsets[cellId + 1] - solventCells.offsets[cellId];
+            const std::size_t polymerCount = polymerCells.offsets[cellId + 1] - polymerCells.offsets[cellId];
+
+            if (solventCount + polymerCount > 1)
+            {
+                const Eigen::Matrix3d rotation = generateRotation(system.rng, system.alpha);
+
+                rotateCoupledCell(
+                    system,
+                    solventCells,
+                    polymer,
+                    polymerCells,
+                    cellId,
+                    rotation
+                );
+
+                thermostatCoupledCell(
+                    system,
+                    solventCells,
+                    polymer,
+                    polymerCells,
+                    cellId
+                );
+            }
+        }
+    }
+
     SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod)
     {
         SolventSamples samples;
@@ -297,7 +438,7 @@ namespace mpcd
         return samples;
     }
 
-    void coupledStep(System& system, Polymer& polymer)
+    void coupledStep(System& system, Polymer& polymer, ThermostatMode thermostatMode)
     {
         const double ratio = system.h / polymer.dt;
         const std::size_t mdSteps = static_cast<std::size_t>(std::llround(ratio));
@@ -309,10 +450,23 @@ namespace mpcd
             velocityVerletStep(polymer);
 
         stream(system);
-        collideCoupled(system, polymer);
+        switch (thermostatMode)
+        {
+            case ThermostatMode::Off:
+            {
+                collideCoupled(system, polymer);
+                break;
+            }
+
+            case ThermostatMode::Canonical:
+            {
+                collideCoupledThermostatted(system, polymer);
+                break;
+            }
+        }
     }
 
-    CoupledSamples runCoupled(System& system, Polymer& polymer, std::size_t steps, std::size_t sampleEvery, std::size_t frameEvery, std::size_t bondVectorEvery)
+    CoupledSamples runCoupled(System& system, Polymer& polymer, std::size_t steps, std::size_t sampleEvery, std::size_t frameEvery, std::size_t bondVectorEvery, std::size_t relativeSpeedEvery, ThermostatMode thermostatMode)
     {
         CoupledSamples samples;
 
@@ -328,6 +482,12 @@ namespace mpcd
         if (bondVectorEvery > 0)
             samples.polymer.reserveBondVectors(steps / bondVectorEvery + 1);
 
+        if (relativeSpeedEvery > 0)
+        {
+            const std::size_t nSamples = steps / relativeSpeedEvery + 1;
+            samples.solvent.reserveRelativeSpeeds(nSamples, static_cast<std::size_t>(system.v.rows()));
+        }
+
         computeBondForces(polymer);
 
         if (sampleEvery > 0)
@@ -342,9 +502,12 @@ namespace mpcd
         if (bondVectorEvery > 0)
             samples.polymer.sampleBondVectors(polymer, 0);
 
+        if (relativeSpeedEvery > 0)
+                samples.solvent.sampleRelativeSpeeds(system, 0);
+
         for (std::size_t step = 1; step <= steps; ++step)
         {
-            coupledStep(system, polymer);
+            coupledStep(system, polymer, thermostatMode);
 
             if (sampleEvery > 0 && step % sampleEvery == 0)
             {
@@ -352,11 +515,15 @@ namespace mpcd
                 samples.polymer.sampleObservables(polymer, step);
             }
 
+
             if (frameEvery > 0 && step % frameEvery == 0)
                 samples.polymer.sampleFrame(polymer, step);
 
             if (bondVectorEvery > 0 && step % bondVectorEvery == 0)
                 samples.polymer.sampleBondVectors(polymer, step);
+
+            if (relativeSpeedEvery > 0 && step % relativeSpeedEvery == 0)
+                samples.solvent.sampleRelativeSpeeds(system, step);
         }
 
         return samples;

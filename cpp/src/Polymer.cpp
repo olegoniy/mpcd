@@ -106,6 +106,19 @@ Eigen::Vector3d Polymer::wrapPositionPBC(const Eigen::Vector3d& position) const
     return wrapped;
 }
 
+void Polymer::scaleVelocities(double factor)
+{
+    v *= factor;
+}   
+
+void Polymer::setVelocities(const ParticleMatrix& velocities)
+{
+    if (velocities.rows() != v.rows() || velocities.cols() != 3)
+        throw std::invalid_argument("Velocity matrix must have shape (N, 3)"); 
+
+    v = velocities;
+}
+
 Eigen::Vector3d Polymer::randomUnitVector()
 {
     std::normal_distribution<double> normal(0.0, 1.0);

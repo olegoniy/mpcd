@@ -51,6 +51,19 @@ SolventSamples& SolventSamples::operator+=(const SolventSamples& other)
     return *this;
 }
 
+void SolventSamples::reserveRelativeSpeeds(std::size_t nSamples, std::size_t nParticles)
+{
+    relativeSpeedSteps.reserve(nSamples);
+    relativeSpeeds.reserve(nSamples * nParticles);
+}
+
+void SolventSamples::sampleRelativeSpeeds(const System& system, std::size_t step)
+{
+    const std::vector<double> dv = solventRelativeSpeeds(system);
+    relativeSpeeds.insert(relativeSpeeds.end(), dv.begin(), dv.end());
+    relativeSpeedSteps.push_back(step);
+}
+
 
 void PolymerSamples::reserve(std::size_t n)
 {

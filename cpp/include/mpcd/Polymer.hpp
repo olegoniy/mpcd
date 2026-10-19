@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <random>
 #include <Eigen/Dense>
+#include <stdexcept>
 
 namespace mpcd
 {
@@ -130,6 +131,9 @@ public:
      * @brief Wraps Polymer's beads' positions according to PBC 
      */
     void wrapAllPositionsPBC();
+
+    void scaleVelocities(double factor);
+    void setVelocities(const ParticleMatrix& velocities);
 
 private:
     /**

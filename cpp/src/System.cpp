@@ -64,4 +64,16 @@ namespace mpcd
         Eigen::RowVector3d v_com = v.colwise().mean();
         v.rowwise() -= v_com;
     }
+
+    void System::scaleVelocities(double factor)
+    {
+        v *= factor;
+    }
+
+    void System::setVelocities(const ParticleMatrix& velocities)
+    {
+        if (velocities.rows() != v.rows() || velocities.cols() != 3)
+            throw std::invalid_argument( "Velocity matrix must have shape (N, 3)" );
+        v = velocities;
+    }
 }   

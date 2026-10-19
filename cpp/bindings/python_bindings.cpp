@@ -16,6 +16,18 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(mpcd_cpp, m)
 {
+    m.def(
+        "coupledTotalEnergy",
+        &mpcd::coupledTotalEnergy,
+        py::arg("system"),
+        py::arg("polymer")
+    );
+
+    m.def(
+        "solventRelativeSpeeds",
+        &mpcd::solventRelativeSpeeds,
+        py::arg("system")
+    );
     // Solvent bindings
     py::class_<mpcd::System>(m, "System")
         .def(
@@ -45,6 +57,12 @@ PYBIND11_MODULE(mpcd_cpp, m)
 
         .def("removeDrift",
              &mpcd::System::removeDrift)
+            
+        .def("scaleVelocities", 
+            &mpcd::System::scaleVelocities)
+
+        .def("setVelocities", 
+            &mpcd::System::setVelocities)
 
         .def_property_readonly("N",
             [](const mpcd::System& s) {
@@ -151,6 +169,8 @@ PYBIND11_MODULE(mpcd_cpp, m)
     .def_readonly("temperature", &mpcd::SolventSamples::temperature)
     .def_readonly("kineticEnergy", &mpcd::SolventSamples::kineticEnergy)
     .def_readonly("momentum", &mpcd::SolventSamples::momentum)
+    .def_readonly("relativeSpeeds", &mpcd::SolventSamples::relativeSpeeds)
+    .def_readonly("relativeSpeedSteps", &mpcd::SolventSamples::relativeSpeedSteps)
     .def(py::self += py::self);
 
     // Polymer bindings
@@ -209,6 +229,12 @@ PYBIND11_MODULE(mpcd_cpp, m)
         py::arg("idx1"),
         py::arg("idx2")
     )
+
+    .def("scaleVelocities", 
+        &mpcd::Polymer::scaleVelocities)
+
+    .def("setVelocities", 
+        &mpcd::Polymer::setVelocities)
 
     .def_readonly(
         "N",
@@ -314,6 +340,11 @@ PYBIND11_MODULE(mpcd_cpp, m)
         }
     );
 
+    py::enum_<mpcd::ThermostatMode>(m, "ThermostatMode")
+    .value("Off", mpcd::ThermostatMode::Off)
+    .value("Canonical", mpcd::ThermostatMode::Canonical)
+    .export_values();
+
     py::class_<mpcd::PolymerSamples>(m, "PolymerSamples")
     .def_readonly(
         "steps",
@@ -418,14 +449,16 @@ PYBIND11_MODULE(mpcd_cpp, m)
     );
 
     m.def(
-    "runCoupled",
-    &mpcd::runCoupled,
-    py::arg("system"),
-    py::arg("polymer"),
-    py::arg("steps"),
-    py::arg("sample_every"),
-    py::arg("frame_every"),
-    py::arg("bond_vector_every")
-);
+        "runCoupled",
+        &mpcd::runCoupled,
+        py::arg("system"),
+        py::arg("polymer"),
+        py::arg("steps"),
+        py::arg("sample_every") = 0,
+        py::arg("frame_every") = 0,
+        py::arg("bond_vector_every") = 0,
+        py::arg("relative_speed_every") = 0,
+        py::arg("thermostat_mode") = mpcd::ThermostatMode::Off
+    );
 
 }   

@@ -110,6 +110,8 @@ public:
      * up to floating-point precision.
      */
     void removeDrift();
+    void scaleVelocities(double factor);
+    void setVelocities(const ParticleMatrix& velocities);
 };
 
 }

@@ -15,8 +15,14 @@ struct SolventSamples
     std::vector<double> kineticEnergy;
     std::vector<Eigen::Vector3d> momentum;
 
+    std::vector<double> relativeSpeeds;
+    std::vector<std::size_t> relativeSpeedSteps;
+
     void reserve(std::size_t n);
     void sample(const System& system, std::size_t step);
+    void reserveRelativeSpeeds(std::size_t nSamples, std::size_t nParticles);
+    void sampleRelativeSpeeds(const System& system, std::size_t step);
+
 
     SolventSamples& operator+=(const SolventSamples& other);
 };

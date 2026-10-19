@@ -2,6 +2,7 @@
 
 #include <mpcd/System.hpp>
 #include <mpcd/Polymer.hpp>
+#include <mpcd/mpcd.hpp>
 #include <Eigen/Dense>
 
 namespace mpcd 
@@ -20,5 +21,10 @@ double polymerAverageBondLength(const Polymer& polymer);
 double polymerEndToEndDistance(const Polymer& polymer);
 Eigen::Vector3d polymerMomentum(const Polymer& polymer);
 double polymerMaxBondLength(const Polymer& polymer);
+
+
+double coupledTotalEnergy(const System& system, const Polymer& polymer);
+
+std::vector<double> solventRelativeSpeeds(const System& system);
 
 }

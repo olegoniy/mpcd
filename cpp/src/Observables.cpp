@@ -128,4 +128,50 @@ double polymerMaxBondLength(const Polymer& polymer)
 
     return maxLength;
 }
+
+double coupledTotalEnergy(const System& system, const Polymer& polymer)
+{
+    return solventKineticEnergy(system) + polymerTotalEnergy(polymer);
+}
+
+std::vector<double> solventRelativeSpeeds(const System& system)
+{
+    const CellList cells = distributeToCells(system.r, system.box, system.a);
+
+    const std::size_t nCells = cells.nx*cells.ny*cells.nz;
+
+    std::vector<double> relativeSpeeds;
+    relativeSpeeds.reserve(static_cast<std::size_t>(system.v.rows()));
+
+    const double thermalVelocity = std::sqrt(system.kBT/system.m);
+
+    for (std::size_t cellId = 0; cellId < nCells; ++cellId)
+    {
+        const std::size_t begin = cells.offsets[cellId];
+        const std::size_t end = cells.offsets[cellId + 1];
+        const std::size_t count = end - begin;
+
+        if (count < 2)
+            continue;
+
+        Eigen::Vector3d v_com = Eigen::Vector3d::Zero();
+        for (std::size_t k = begin; k < end; ++k)
+        {
+            const std::size_t i = cells.indices[k];
+            v_com += system.v.row(i).transpose();
+        }
+
+        v_com /= static_cast<double>(count);
+
+        for (std::size_t k = begin; k < end; ++k)
+        {
+            const std::size_t i = cells.indices[k];
+            const Eigen::Vector3d dv = system.v.row(i).transpose() - v_com;
+            relativeSpeeds.push_back(dv.norm() / thermalVelocity);
+        }
+    }
+
+    return relativeSpeeds;
+}
+
 }
