@@ -27,6 +27,19 @@ Eigen::Vector3d solventMomentum(const System& system)
     return system.m * system.v.colwise().sum().transpose();
 }
 
+double solventVelocityAutocorrelation(const System& system, const ParticleMatrix& referenceVelocities)
+{
+    if (referenceVelocities.rows() != system.v.rows() || referenceVelocities.cols() != system.v.cols())
+        throw std::invalid_argument("Reference velocities have wrong shape");
+
+    double correlation = 0.0;
+
+    for (Eigen::Index i = 0; i < system.v.rows(); ++i)
+        correlation += system.v.row(i).dot(referenceVelocities.row(i));
+
+    return correlation/static_cast<double>(system.v.rows());
+}
+
 double polymerKineticEnergy(const Polymer &polymer)
 {
     return 0.5 * polymer.m * polymer.v.array().square().sum();

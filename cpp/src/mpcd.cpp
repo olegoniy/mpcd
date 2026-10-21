@@ -419,9 +419,19 @@ namespace mpcd
         }
     }
 
-    SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod)
+    SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod, std::size_t relativeSpeedEvery, std::size_t vacfEvery)
     {
+        ParticleMatrix referenceVelocities;
         SolventSamples samples;
+
+        if (vacfEvery > 0)
+        {
+            referenceVelocities = system.v;
+            const std::size_t nSamples = steps/vacfEvery + 1;
+            samples.reserveVacf(nSamples);
+            samples.sampleVacf(system, referenceVelocities, 0);
+        }
+        
 
         if (samplePeriod > 0) {
             samples.reserve(steps / samplePeriod);
@@ -431,6 +441,10 @@ namespace mpcd
         {
             stream(system);
             collide(system);
+
+            if (vacfEvery > 0 && (step + 1) % vacfEvery == 0)
+                samples.sampleVacf(system, referenceVelocities, step + 1);
+
             if (samplePeriod > 0 && (step + 1) % samplePeriod == 0)
                 samples.sample(system, step + 1);
         }

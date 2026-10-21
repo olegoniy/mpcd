@@ -21,6 +21,18 @@ void SolventSamples::sample(const System& system, std::size_t step)
     momentum.push_back(solventMomentum(system));
 }
 
+void SolventSamples::sampleVacf(const System& system, const ParticleMatrix& referenceVelocities, std::size_t step)
+{
+    vacfSteps.push_back(step);
+    velocityAutocorrelation.push_back(solventVelocityAutocorrelation(system, referenceVelocities));
+}
+
+void SolventSamples::reserveVacf(std::size_t n)
+{
+    vacfSteps.reserve(n);
+    velocityAutocorrelation.reserve(n);
+}
+
 SolventSamples& SolventSamples::operator+=(const SolventSamples& other)
 {
     std::size_t offset = steps.empty() ? 0 : steps.back();
