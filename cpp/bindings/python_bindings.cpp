@@ -156,6 +156,19 @@ PYBIND11_MODULE(mpcd_cpp, m)
         py::arg("vacf_every") = 0,
         py::arg("thermostat_mode") = mpcd::ThermostatMode::Off
     );
+    m.def(
+        "diffusionCoefficientFromVacf",
+        &mpcd::diffusionCoefficientFromVacf,
+        py::arg("samples"),
+        py::arg("h"),
+        py::arg("max_lag")
+    );
+    m.def(
+        "theoreticalDiffusionCoefficient",
+        &mpcd::theoreticalSolventDiffusion,
+        py::arg("system")
+    );
+    
 
     py::class_<mpcd::CellList>(m, "CellList")
         .def_readonly("nx", &mpcd::CellList::nx)

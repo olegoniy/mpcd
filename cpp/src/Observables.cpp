@@ -40,6 +40,31 @@ double solventVelocityAutocorrelation(const System& system, const ParticleMatrix
     return correlation/static_cast<double>(system.v.rows());
 }
 
+double diffusionCoefficientFromVacf(const SolventSamples& samples, double h, std::size_t maxLag)
+{
+    if (samples.velocityAutocorrelation.empty())
+        throw std::invalid_argument("VACF samples are empty");
+
+    const std::size_t availableLag = samples.velocityAutocorrelation.size() - 1;
+    const std::size_t lastLag = std::min(maxLag, availableLag);
+
+    double diffusion = h*samples.velocityAutocorrelation[0]/6.0;
+
+    for (std::size_t lag = 1; lag <= lastLag; ++lag)
+        diffusion += h*samples.velocityAutocorrelation[lag]/3.0;
+
+    return diffusion;
+}
+
+double theoreticalSolventDiffusion(const System& system)
+{
+    const double nCells = std::ceil(system.box[0]/system.a)*std::ceil(system.box[1]/system.a)*std::ceil(system.box[2]/system.a);
+    const double meanNc = static_cast<double>(system.N)/nCells;
+    const double gamma = 2.0*(1.0 - std::cos(system.alpha))/(3.0*meanNc)*(std::exp(-meanNc) + meanNc - 1.0);
+
+    return system.h*system.kBT/system.m*(1.0/gamma - 0.5);
+}
+
 double polymerKineticEnergy(const Polymer &polymer)
 {
     return 0.5 * polymer.m * polymer.v.array().square().sum();

@@ -13,6 +13,8 @@ double solventTemperature(const System& system, double kB = 1.0, bool removeCOM 
 Eigen::Vector3d solventMomentum(const System& system);
 double coupledTotalEnergy(const System& system, const Polymer& polymer);
 double solventVelocityAutocorrelation(const System& system, const ParticleMatrix& referenceVelocities);
+double diffusionCoefficientFromVacf(const SolventSamples& samples, double h, std::size_t maxLag);
+double theoreticalSolventDiffusion(const System& system);
 
 double polymerKineticEnergy(const Polymer& polymer);
 double polymerPotentialEnergy(const Polymer& polymer);
