@@ -18,7 +18,9 @@ struct SolventSamples
     std::vector<std::size_t> relativeSpeedSteps;
     std::vector<std::size_t> vacfSteps;
     std::vector<double> velocityAutocorrelation;
-
+    std::vector<std::size_t> averagedVacfLags;
+    std::vector<double> averagedVelocityAutocorrelation;
+    std::vector<std::size_t> averagedVacfCounts;
     
     
 

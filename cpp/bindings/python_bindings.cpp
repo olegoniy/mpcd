@@ -8,6 +8,7 @@
 #include <mpcd/Polymer.hpp> 
 #include <mpcd/Sampling.hpp>
 #include <mpcd/Observables.hpp>
+#include <mpcd/VacfAccumulator.hpp>
 #include <mpcd/Force.hpp>
 #include <mpcd/mpcd.hpp>
 #include <mpcd/MD.hpp>
@@ -149,12 +150,13 @@ PYBIND11_MODULE(mpcd_cpp, m)
     m.def("stream", &mpcd::stream);
     m.def("collide", &mpcd::collide);
     m.def(
-        "runSolvent", &mpcd::runSolvent, 
-        py::arg("system"), 
-        py::arg("steps"), 
+        "runSolvent",
+        &mpcd::runSolvent,
+        py::arg("system"),
+        py::arg("steps"),
         py::arg("sample_period"),
-        py::arg("vacf_every") = 0,
-        py::arg("thermostat_mode") = mpcd::ThermostatMode::Off
+        py::arg("vacf_max_lag") = 0,
+        py::arg("vacf_origin_stride") = 1
     );
     m.def(
         "diffusionCoefficientFromVacf",
@@ -193,6 +195,9 @@ PYBIND11_MODULE(mpcd_cpp, m)
     .def_readonly("relativeSpeedSteps", &mpcd::SolventSamples::relativeSpeedSteps)
     .def_readonly("vacfSteps", &mpcd::SolventSamples::vacfSteps)
     .def_readonly("velocityAutocorrelation", &mpcd::SolventSamples::velocityAutocorrelation)
+    .def_readonly("averagedVacfLags", &mpcd::SolventSamples::averagedVacfLags)
+    .def_readonly("averagedVelocityAutocorrelation", &mpcd::SolventSamples::averagedVelocityAutocorrelation)
+    .def_readonly("averagedVacfCounts", &mpcd::SolventSamples::averagedVacfCounts)
     .def(py::self += py::self);
 
     // Polymer bindings

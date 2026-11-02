@@ -19,6 +19,7 @@ add_library(mpcd_core
     cpp/src/Polymer.cpp
     cpp/src/Force.cpp
     cpp/src/MD.cpp
+    cpp/src/VacfAccumulator.cpp
 )
 
 target_include_directories(mpcd_core PUBLIC

@@ -4,7 +4,9 @@
 #include <mpcd/MD.hpp>
 #include <mpcd/Polymer.hpp>
 #include <mpcd/Sampling.hpp>
+#include <mpcd/VacfAccumulator.hpp>
 #include <mpcd/Force.hpp>
+
 
 #include <cmath>
 #include <numbers>
@@ -419,22 +421,18 @@ namespace mpcd
         }
     }
 
-    SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod, std::size_t relativeSpeedEvery, std::size_t vacfEvery)
+    SolventSamples runSolvent(System& system, std::size_t steps, std::size_t samplePeriod, std::size_t vacfMaxLag, std::size_t vacfOriginStride)
     {
-        ParticleMatrix referenceVelocities;
         SolventSamples samples;
+        VacfAccumulator vacfAccumulator(vacfMaxLag, vacfOriginStride);
 
-        if (vacfEvery > 0)
-        {
-            referenceVelocities = system.v;
-            const std::size_t nSamples = steps/vacfEvery + 1;
-            samples.reserveVacf(nSamples);
-            samples.sampleVacf(system, referenceVelocities, 0);
-        }
-        
-
-        if (samplePeriod > 0) {
+        if (samplePeriod > 0)
             samples.reserve(steps / samplePeriod);
+
+        if (vacfMaxLag > 0)
+        {
+            vacfAccumulator.addOrigin(system, 0);
+            vacfAccumulator.sample(system, 0);
         }
 
         for (std::size_t step = 0; step < steps; ++step)
@@ -442,11 +440,28 @@ namespace mpcd
             stream(system);
             collide(system);
 
-            if (vacfEvery > 0 && (step + 1) % vacfEvery == 0)
-                samples.sampleVacf(system, referenceVelocities, step + 1);
+            const std::size_t currentStep = step + 1;
 
-            if (samplePeriod > 0 && (step + 1) % samplePeriod == 0)
-                samples.sample(system, step + 1);
+            if (vacfMaxLag > 0)
+            {
+                if (vacfAccumulator.shouldAddOrigin(currentStep))
+                    vacfAccumulator.addOrigin(system, currentStep);
+
+                vacfAccumulator.sample(system, currentStep);
+            }
+
+            if (samplePeriod > 0 && currentStep % samplePeriod == 0)
+                samples.sample(system, currentStep);
+        }
+
+        if (vacfMaxLag > 0)
+        {
+            samples.averagedVelocityAutocorrelation = vacfAccumulator.averagedVacf();
+            samples.averagedVacfCounts = vacfAccumulator.counts();
+            samples.averagedVacfLags.resize(vacfMaxLag + 1);
+
+            for (std::size_t lag = 0; lag <= vacfMaxLag; ++lag)
+                samples.averagedVacfLags[lag] = lag;
         }
 
         return samples;

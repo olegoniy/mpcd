@@ -42,16 +42,17 @@ double solventVelocityAutocorrelation(const System& system, const ParticleMatrix
 
 double diffusionCoefficientFromVacf(const SolventSamples& samples, double h, std::size_t maxLag)
 {
-    if (samples.velocityAutocorrelation.empty())
-        throw std::invalid_argument("VACF samples are empty");
+    const auto& vacf = samples.averagedVelocityAutocorrelation;
 
-    const std::size_t availableLag = samples.velocityAutocorrelation.size() - 1;
-    const std::size_t lastLag = std::min(maxLag, availableLag);
+    if (vacf.empty())
+        throw std::invalid_argument("Averaged VACF samples are empty");
 
-    double diffusion = h*samples.velocityAutocorrelation[0]/6.0;
+    const std::size_t lastLag = std::min(maxLag, vacf.size() - 1);
+
+    double diffusion = h * vacf[0] / 6.0;
 
     for (std::size_t lag = 1; lag <= lastLag; ++lag)
-        diffusion += h*samples.velocityAutocorrelation[lag]/3.0;
+        diffusion += h * vacf[lag] / 3.0;
 
     return diffusion;
 }

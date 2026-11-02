@@ -16,6 +16,8 @@ double solventVelocityAutocorrelation(const System& system, const ParticleMatrix
 double diffusionCoefficientFromVacf(const SolventSamples& samples, double h, std::size_t maxLag);
 double theoreticalSolventDiffusion(const System& system);
 
+
+
 double polymerKineticEnergy(const Polymer& polymer);
 double polymerPotentialEnergy(const Polymer& polymer);
 double polymerTotalEnergy(const Polymer& polymer);
