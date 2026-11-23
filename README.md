@@ -1,244 +1,304 @@
-# MPCD Polymer Simulation
+# MPCD — C++ Simulation Library with Python Research Interface
 
-## Overview
+A research implementation of **Multiparticle Collision Dynamics (MPCD)** and coarse-grained polymer dynamics.
 
-MPCD implementation using combination of classical MD for polymer behavior and coarse-grained simulation for a solvent
+The project consists of two layers:
 
-## Motivation
+- a **C++ simulation library**, developed from scratch, containing the numerical core, physical models, observables, thermostatting, solvent–polymer coupling, and transport calculations;
+- a **Python research layer**, used to configure simulations, run validation experiments, compare results with theory, and visualize the resulting physics.
 
-MPCD is cutting corners on elements of simulation, where we have no need for exact atomic interactions and replaces them with stochastic collision proccess instead. This allows for better performance, while still giving ability to see atomic impact on polymer beads. 
+The aim is to keep the simulation itself in C++ while using Python as a convenient interface for research and analysis.
 
-## Current Features
+---
 
-Coupled system with:
-- periodic boundary conditions
-- Galilean invariance
-- Stochastic rotation for collision
-- harmonic polymer bonds
-- validation plots and tests
+## Reference model
+
+The physical formulation follows:
+
+**R. G. Winkler, “Flow Simulations with Multiparticle Collision Dynamics,” in _Hierarchical Methods for Dynamics in Complex Molecular Systems_, J. Grotendorst, G. Sutmann, G. Gompper, and D. Marx (eds.), Forschungszentrum Jülich, 2012, pp. 417–443.**
+
+In particular:
+
+- MPCD/SRD solvent dynamics and random grid shifting follow **Section 2**;
+- solvent coupling to embedded particles / polymer monomers follows **Section 3**, especially Eq. (9);
+- the cell-level canonical thermostat follows **Section 4**, especially Eqs. (14)–(17);
+- VACF and self-diffusion analysis follow **Section 5.1**, Eqs. (18)–(26);
+- the mean-free-path comparison follows **Figure 2** and the accompanying discussion.
+
+This README focuses on the implementation and on project-specific choices rather than reproducing the derivations from the reference.
+
+---
+
+## Architecture
+
+```text
+                         MPCD project
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+        C++ simulation library          Python research layer
+              │                               │
+        MPCD / polymer dynamics         simulation setup
+        thermostatting                  validation
+        observables                     parameter studies
+        transport analysis              plotting / notebooks
+              │                               │
+              └──────── pybind11 ─────────────┘
+```
+
+The C++ core performs the numerical evolution and sampling. Python provides the high-level interface.
+
+---
+
+## C++ library
+
+### MPCD solvent
+
+The solvent implementation follows Section 2 of Winkler.
+
+Implemented functionality includes:
+
+- three-dimensional solvent particles;
+- uniform position initialization;
+- Maxwell-Boltzmann / Gaussian velocity initialization;
+- center-of-mass drift removal;
+- ballistic streaming;
+- periodic boundary conditions;
+- collision-cell assignment;
+- random grid shifting;
+- stochastic rotation collisions around randomly oriented axes;
+- cell center-of-mass velocities;
+- momentum-conserving collision dynamics.
+
+### Polymer dynamics
+
+Solvent–polymer collision coupling follows the embedded-particle approach in Section 3 of Winkler.
+
+Project-specific choices:
+
+- ideal bead-spring polymer;
+- harmonic nearest-neighbour bonds;
+- velocity-Verlet integration;
+- separate polymer sampling and diagnostics.
+
+### Canonical thermostat
+
+The cell-level thermostat follows Section 4 of Winkler.
+
+Project-specific implementation details:
+
+- thermostatting is selectable at run time;
+- the same interface is used for solvent and coupled solvent–polymer simulations;
+- temperature, momentum, energy, and relative-velocity diagnostics are sampled directly in C++.
+
+### Observables
+
+The C++ library exposes observables for the solvent, polymer, and coupled system, including:
+
+**Solvent**
+- kinetic energy;
+- temperature;
+- total momentum;
+- relative-speed diagnostics;
+- velocity autocorrelation function;
+- averaged VACF sample counts;
+- self-diffusion coefficient.
+
+**Polymer**
+- kinetic, potential, and total energy;
+- momentum;
+- bond lengths and maximum bond length;
+- end-to-end distance;
+- bond vectors;
+- sampled polymer configurations.
+
+**Coupled system**
+- solvent and polymer temperatures;
+- total momentum;
+- energy diagnostics.
+
+---
+
+## Transport analysis
+
+Transport analysis is based on Section 5.1 of Winkler.
+
+### VACF
+
+The numerical VACF is compared with the analytical molecular-chaos result in Eqs. (23)–(24) and with the behaviour shown in Figure 2.
+
+A project-specific addition is **multi-time-origin averaging**.
+
+During one equilibrium run, the C++ `VacfAccumulator` periodically stores new velocity reference states and accumulates correlations for each lag. It also tracks the number of samples contributing to every lag and removes expired origins once they exceed the requested maximum lag.
+
+This provides a statistically cleaner VACF without requiring separate simulation runs.
+
+### Mean free path
+
+The Figure 2 comparison is reproduced for representative values of
+
+- \(\lambda/a = 0.1\);
+- \(\lambda/a = 1.0\).
+
+As in Winkler, \(\lambda/a\) is derived from the simulation parameters rather than stored as an independent system variable.
+
+### Self-diffusion
+
+The numerical diffusion coefficient is obtained from the Green-Kubo relation in Eq. (18) and compared with the molecular-chaos prediction in Eq. (26).
+
+The implementation evaluates the Green-Kubo sum from the **averaged VACF** and uses a configurable maximum lag so that the numerical result can be checked for cutoff convergence.
+
+---
 
 ## Validation
 
-| Check | What it verifies | Expected behavior |
-|---|---|---|
-| Rotation matrix orthogonality | Collision is a true rotation | `R.T @ R ≈ I` |
-| Rotation matrix determinant | No reflection or scaling is introduced | `det(R) ≈ 1` |
-| Solvent momentum conservation | MPCD collision treats cell center-of-mass motion correctly | Total solvent momentum remains constant |
-| Solvent kinetic energy conservation | Relative velocities are rotated without changing their magnitude | Solvent kinetic energy remains constant |
-| Polymer force balance | Bond forces are internal forces | Sum of polymer forces is zero |
-| Polymer momentum conservation | Velocity Verlet with internal forces does not create net drift | Polymer momentum remains constant |
-| Polymer energy conservation | Polymer MD is numerically stable | Small bounded energy error |
-| Coupled cell momentum conservation | Mass-weighted solvent-polymer COM velocity is correct | Cell momentum remains constant |
-| Coupled COM velocity conservation | Coupled collision preserves cell center-of-mass motion | COM velocity remains constant |
-| Coupled relative speed conservation | Rotation preserves velocities relative to the COM | Relative speeds remain unchanged |
-| Full coupled momentum conservation | Solvent-polymer exchange does not create net momentum | Total momentum remains constant |
-| Full coupled kinetic energy conservation | Coupled collision does not heat or cool the system | Total kinetic energy remains constant during collision |
-| NVE total energy plot | Full simulation remains stable without thermostat | Total energy deviation remains small |
+The implementation is tested against conservation laws, equilibrium statistics, and analytical predictions.
 
+Current checks include:
 
-## Repository Structure
-```text
-mpcd_project/
-├── notebooks/
-│   ├── plots.ipynb
-│   └── SimulationDiagnostics.ipynb
-│
-├── src/
-│   ├── system.py          # solvent state and parameters
-│   ├── polymer.py         # polymer state and initialization
-│   ├── forces.py          # polymer force calculations
-│   ├── md.py              # velocity Verlet integrator
-│   ├── mpcd.py            # MPCD streaming, cells, collision
-│   └── observables.py     # diagnostics and measured quantities
-│
-├── scripts/
-│  └─── run_sim.py
-│
-├── tests/
-│   ├── test_mpcd.py
-│   ├── test_md.py
-│   └── test_physics.py
-│
-└── README.md
+- solvent momentum conservation;
+- total-energy conservation in unthermostatted equilibrium runs;
+- momentum conservation with the canonical thermostat;
+- solvent and polymer temperature behaviour;
+- Maxwell-Boltzmann velocity statistics;
+- relaxation of anisotropic initial velocity distributions;
+- isolated-polymer energy and bond stability;
+- \(C_v(0)\) at equilibrium;
+- VACF versus the molecular-chaos prediction;
+- comparison of the \(\lambda/a=0.1\) and \(\lambda/a=1\) regimes;
+- Green-Kubo self-diffusion versus the analytical result.
+
+---
+
+## Python interface
+
+The library is exposed through **pybind11**.
+
+A typical pure-solvent run looks like:
+
+```python
+import numpy as np
+import mpcd_cpp as mpcd
+
+box = np.array([10.0, 10.0, 10.0])
+
+system = mpcd.System(
+    5000,
+    box,
+    1.0,
+    0.1,
+    1.0,
+    0.75,
+    np.pi / 2,
+    42
+)
+
+system.initPositionsUniform()
+system.initVelocitiesNormal()
+
+samples = mpcd.runSolvent(
+    system=system,
+    steps=5000,
+    sample_period=100,
+    vacf_max_lag=100,
+    vacf_origin_stride=10
+)
 ```
 
-## Usage
+Sampled quantities are then available directly in Python:
 
-Run all tests:
+```python
+lags = np.asarray(samples.averagedVacfLags)
+vacf = np.asarray(samples.averagedVelocityAutocorrelation)
+counts = np.asarray(samples.averagedVacfCounts)
+
+vacf_normalized = vacf / vacf[0]
+```
+
+The simulation and physical observables remain in C++; Python is used for configuration, comparison, and visualization.
+
+---
+
+## Building
+
+### Requirements
+
+- C++20 compiler
+- CMake
+- Eigen3
+- pybind11
+- Python 3
+- NumPy
+
+For analysis and testing, the project also uses Matplotlib and pytest.
+
+### Build
+
+```bash
+git clone https://github.com/olegoniy/mpcd.git
+cd mpcd
+
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release
+```
+
+The build produces the C++ core and the `mpcd_cpp` Python extension.
+
+---
+
+## Project structure
+
+```text
+cpp/
+├── include/mpcd/       # public C++ interfaces
+├── src/                # implementations
+└── bindings/           # pybind11 bindings
+```
+
+The Python side contains notebooks and analysis code for simulation setup, validation, parameter studies, and plotting.
+
+---
+
+## Current directions
+
+The next research steps are:
+
+- compare the self-diffusion coefficient over several collision times / mean free paths;
+- add self-avoidance to the polymer model;
+- implement the gyration tensor and radius of gyration;
+- compare rigidity-related observables for ideal and self-avoiding polymers;
+- extend the polymer interaction model;
+- study heat transport using spatially separated hot and cold thermostat regions and the resulting temperature gradient.
+
+---
+
+## Testing
+
+Python-facing tests can be run with
 
 ```bash
 pytest
 ```
 
-Run one test file:
-
-```bash
-pytest tests/test_polymer_forces.py
-```
-
-Run one test:
-
-```bash
-pytest tests/test_polymer_forces.py::test_total_bond_force_zero
-```
-
-## Recommended test parameters
-
-```python
-    system = System(
-        N=10_000,
-        box=[10.0, 10.0, 10.0],
-        a=1.0,
-        h=0.1,
-        m=1.0,
-        kBT=1.0,
-        alpha=2/3*np.pi,
-        seed=12345,
-    )
-
-    polymer = Polymer(
-        nMonomers=100,
-        box=[10.0, 10.0, 10.0],
-        bondLength=0.25,
-        m=2.0,
-        k=100.0,
-        kBT=1.0,
-        dt=0.0001,
-        seed=54321,
-    )
-```
+Physics-level validation is additionally performed in notebooks through conservation checks, distributions, time series, and comparison with analytical predictions.
 
 ---
 
-# Progress checklist by book structure
+## Technologies
 
-## Chapter 2 — Basic MPCD algorithm
-
-### Solvent state
-
-- [x] Create `System` class
-- [x] Store positions `r`, velocities `v`, box size, particle mass, cell size, time step, temperature, and rotation angle
-- [x] Initialize solvent positions uniformly in the box
-- [x] Initialize solvent velocities from a Gaussian distribution
-- [x] Remove solvent center-of-mass velocity
-
-### Streaming step
-
-- [x] Implement ballistic streaming
-- [x] Apply periodic boundary conditions after streaming
-- [x] Test that all particles remain inside the simulation box
-
-### Collision cells
-
-- [x] Implement cell assignment
-- [x] Implement random grid shift
-- [x] Use shifted positions only for cell assignment
-- [x] Test cell assignment with hand-picked positions
-- [x] Test that every particle is assigned exactly once
-
-### Collision step
-
-- [x] Implement random rotation matrix
-- [x] Test rotation matrix orthogonality
-- [x] Test rotation matrix determinant
-- [x] Compute cell center-of-mass velocity
-- [x] Rotate relative velocities in each cell
-- [x] Test cell momentum conservation
-- [x] Test relative kinetic energy conservation in one cell
-- [x] Test full-system momentum conservation
-
-### Solvent diagnostics
-
-- [x] Check velocity distribution
-- [x] Check cell occupancy distribution
-- [ ] Save solvent observables
-- [ ] Plot solvent observables from saved data
+C++20 · Eigen · CMake · pybind11 · Python · NumPy · Matplotlib · pytest
 
 ---
 
-## Chapter 3 — Embedded particles, polymers, and boundaries
+## Reference
 
-### Polymer object
-
-- [x] Create `Polymer` class
-- [x] Store monomer positions `r`, velocities `v`, forces `f`, mass, bond length, and bond stiffness
-- [x] Generate straight-chain initial positions
-- [x] Generate random-walk initial positions
-- [x] Initialize polymer velocities
-- [ ] Remove polymer center-of-mass velocity
-- [x] Plot polymer in 3D
-- [x] Plot polymer with monomer indices
-
-### Periodic distances
-
-- [x] Implement minimum image convention
-- [x] Use minimum image for bond vectors
-- [x] Test 1D boundary case
-- [x] Test 3D boundary case
-
-### Polymer forces
-
-- [x] Implement harmonic bond forces
-- [x] Test zero force at equilibrium bond length
-- [x] Test total bond force equals zero
-- [x] Test equal and opposite pair forces
-
-### Polymer MD
-
-- [x] Implement velocity Verlet integrator
-- [x] Compute forces before the first Verlet step
-- [x] Test that equilibrium polymer with zero velocity stays fixed
-- [x] Test polymer momentum conservation
-- [x] Test polymer energy conservation
-- [x] Test that bond lengths remain stable
-- [x] Plot average bond length over time
-- [x] Plot total energy over time
-
-### MPCD-polymer coupling
-
-- [x] Assign polymer beads to MPCD collision cells
-- [x] Use the same shifted grid for solvent particles and polymer beads
-- [x] Compute mass-weighted cell center-of-mass velocity
-- [x] Rotate solvent relative velocities
-- [x] Rotate polymer bead relative velocities
-- [x] Test coupled-cell momentum conservation
-- [x] Test coupled-cell kinetic energy conservation
-- [x] Run solvent + polymer simulation
-- [x] Track polymer bond lengths during coupled simulation
-- [ ] Track polymer center-of-mass motion
+[1] **R. G. Winkler**, “Flow Simulations with Multiparticle Collision Dynamics,” in _Hierarchical Methods for Dynamics in Complex Molecular Systems_, J. Grotendorst, G. Sutmann, G. Gompper, and D. Marx (eds.), Forschungszentrum Jülich, 2012, pp. 417–443.
 
 ---
 
-## Chapter 4 — Thermostats and temperature control
+## Author
 
-### Temperature observables
+Developed by **Oleg Onyshchenko** as a computational / soft-matter physics research project.
 
-- [ ] Implement solvent kinetic temperature
-- [ ] Implement polymer kinetic temperature
-- [ ] Implement total kinetic temperature for coupled systems
-- [ ] Account for removed center-of-mass degrees of freedom where needed
-
-### Solvent thermostat
-
-- [ ] Implement cell-level velocity scaling thermostat
-- [ ] Implement stochastic cell-level thermostat if needed
-- [ ] Test that target temperature is maintained
-- [ ] Check velocity distribution after thermostatting
-
-### Polymer thermal behavior
-
-- [ ] Check polymer temperature during standalone MD
-- [ ] Check polymer temperature during MPCD coupling
-- [ ] Decide whether polymer needs an explicit thermostat or only MPCD coupling
-
-### Validation
-
-- [ ] Plot temperature versus simulation step
-- [ ] Test that thermostat does not create net momentum drift
-- [ ] Test stability for long runs
-
----
-
-## Chapter 5 — Transport and dynamical observables
-
-To be written
+Repository:  
+https://github.com/olegoniy/mpcd
