@@ -137,10 +137,10 @@ This provides a statistically cleaner VACF without requiring separate simulation
 
 The Figure 2 comparison is reproduced for representative values of
 
-- \(\lambda/a = 0.1\);
-- \(\lambda/a = 1.0\).
+- $ \lambda/a = 0.1 $;
+- $ \lambda/a = 1.0 $.
 
-As in Winkler, \(\lambda/a\) is derived from the simulation parameters rather than stored as an independent system variable.
+As in Winkler, $\lambda/a$ is derived from the simulation parameters rather than stored as an independent system variable.
 
 ### Self-diffusion
 
@@ -298,7 +298,7 @@ C++20 · Eigen · CMake · pybind11 · Python · NumPy · Matplotlib · pytest
 
 ## Author
 
-Developed by **Oleg Onyshchenko** as a computational / soft-matter physics research project.
+Developed by Oleg Kiryeyev as a computational / soft-matter physics research project.
 
 Repository:  
 https://github.com/olegoniy/mpcd
