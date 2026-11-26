@@ -263,6 +263,17 @@ PYBIND11_MODULE(mpcd_cpp, m)
     .def("setVelocities", 
         &mpcd::Polymer::setVelocities)
 
+    .def("wrapPositions", &mpcd::Polymer::wrapPositions)
+    .def("unwrappedPositions", &mpcd::Polymer::unwrappedPositions)
+
+    .def_property_readonly(
+        "images",
+        [](const mpcd::Polymer& polymer)
+        {
+            return polymer.images;
+        }
+    )
+
     .def_readonly(
         "N",
         &mpcd::Polymer::N
@@ -460,6 +471,22 @@ PYBIND11_MODULE(mpcd_cpp, m)
         py::arg("bond_vector_every")
     );
     
+    m.def(
+        "polymerGyrationTensor",
+        &mpcd::polymerGyrationTensor,
+        py::arg("polymer")
+    );
+
+    m.def(
+        "polymerRadiusOfGyration",
+        &mpcd::polymerRadiusOfGyration,
+        py::arg("polymer")
+    );
+    
+    m.def("polymerCenterOfMass", &mpcd::polymerCenterOfMass);
+    m.def("polymerPositionsRelativeToCenterOfMass", &mpcd::polymerPositionsRelativeToCenterOfMass);
+    m.def("polymerGyrationTensor", &mpcd::polymerGyrationTensor);
+    m.def("polymerRadiusOfGyration", &mpcd::polymerRadiusOfGyration);
 
     py::class_<mpcd::CoupledSamples>(m, "CoupledSamples")
     .def_readonly(

@@ -119,6 +119,33 @@ void Polymer::setVelocities(const ParticleMatrix& velocities)
     v = velocities;
 }
 
+void Polymer::wrapPositions()
+{
+    for (Eigen::Index i = 0; i < r.rows(); ++i)
+    {
+        for (Eigen::Index d = 0; d < 3; ++d)
+        {
+            const long long crossing = static_cast<long long>(std::floor(r(i, d) / box(d)));
+
+            images(i, d) += crossing;
+            r(i, d) -= crossing * box(d);
+        }
+    }
+}
+
+Polymer::ParticleMatrix Polymer::unwrappedPositions() const
+{
+    ParticleMatrix positions = r;
+
+    for (Eigen::Index i = 0; i < r.rows(); ++i)
+    {
+        for (Eigen::Index d = 0; d < 3; ++d)
+            positions(i, d) += images(i, d) * box(d);
+    }
+
+    return positions;
+}
+
 Eigen::Vector3d Polymer::randomUnitVector()
 {
     std::normal_distribution<double> normal(0.0, 1.0);

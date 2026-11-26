@@ -27,6 +27,10 @@ double polymerAverageBondLength(const Polymer& polymer);
 double polymerEndToEndDistance(const Polymer& polymer);
 Eigen::Vector3d polymerMomentum(const Polymer& polymer);
 double polymerMaxBondLength(const Polymer& polymer);
+Eigen::Vector3d polymerCenterOfMass(const Polymer& polymer);
+Polymer::ParticleMatrix polymerPositionsRelativeToCenterOfMass(const Polymer& polymer);
+Eigen::Matrix3d polymerGyrationTensor(const Polymer& polymer);
+double polymerRadiusOfGyration(const Polymer& polymer);
 
 
 std::vector<double> solventRelativeSpeeds(const System& system);

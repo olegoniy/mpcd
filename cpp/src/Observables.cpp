@@ -168,9 +168,37 @@ double polymerMaxBondLength(const Polymer& polymer)
     return maxLength;
 }
 
+Eigen::Vector3d polymerCenterOfMass(const Polymer& polymer)
+{
+    const Polymer::ParticleMatrix positions = polymer.unwrappedPositions();
+    return positions.colwise().mean();
+}
+
+Polymer::ParticleMatrix polymerPositionsRelativeToCenterOfMass(const Polymer& polymer)
+{
+    const Polymer::ParticleMatrix positions = polymer.unwrappedPositions();
+    const Eigen::Vector3d centerOfMass = polymerCenterOfMass(polymer);
+
+    return positions.rowwise() - centerOfMass.transpose();
+}
+
+Eigen::Matrix3d polymerGyrationTensor(const Polymer& polymer)
+{
+    const Polymer::ParticleMatrix relativePositions = polymerPositionsRelativeToCenterOfMass(polymer);
+
+    return relativePositions.transpose() * relativePositions / static_cast<double>(polymer.N);
+}
+
 double coupledTotalEnergy(const System& system, const Polymer& polymer)
 {
     return solventKineticEnergy(system) + polymerTotalEnergy(polymer);
+}
+
+double polymerRadiusOfGyration(const Polymer& polymer)
+{
+    const Eigen::Matrix3d gyrationTensor = polymerGyrationTensor(polymer);
+
+    return std::sqrt(gyrationTensor.trace());
 }
 
 std::vector<double> solventRelativeSpeeds(const System& system)

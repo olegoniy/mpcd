@@ -9,7 +9,8 @@ void velocityVerletStep(Polymer& polymer)
     Polymer::ParticleMatrix oldForces = polymer.f;
     polymer.r += polymer.dt * polymer.v + (0.5*polymer.dt*polymer.dt/polymer.m)*oldForces;
     // Periodic conditions
-    polymer.wrapAllPositionsPBC();
+    //polymer.wrapAllPositionsPBC();
+    polymer.wrapPositions();
     // Compute forces at new positions
     computeBondForces(polymer);
     polymer.v +=(0.5*polymer.dt/polymer.m) * (oldForces + polymer.f);

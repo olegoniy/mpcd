@@ -18,6 +18,7 @@ class Polymer
 {
 public:
     using ParticleMatrix = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+    using ImageMatrix = Eigen::Matrix<long long, Eigen::Dynamic, 3, Eigen::RowMajor>;
 
     /// Number of monomers in the polymer chain.
     std::size_t N;
@@ -39,6 +40,8 @@ public:
     ParticleMatrix v;
     /// Forces acting on the monomers. Each row corresponds to [fx, fy, fz].
     ParticleMatrix f;
+    /// Saves information about crossing the boundaries
+    ImageMatrix images;
     /// Random number generator used for initialization.
     std::mt19937 rng;
 
@@ -79,6 +82,7 @@ public:
         f(nMonomers, 3),
         rng(seed)
     {
+        images = ImageMatrix::Zero(N, 3);
         f.setZero();
     }
 
@@ -134,6 +138,8 @@ public:
 
     void scaleVelocities(double factor);
     void setVelocities(const ParticleMatrix& velocities);
+    void wrapPositions();
+    ParticleMatrix unwrappedPositions() const;
 
 private:
     /**
